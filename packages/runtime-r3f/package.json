@@ -26,7 +26,7 @@
   },
   "peerDependencies": {
     "@react-three/fiber": "*",
-    "react": "^19",
+    "react": "19.2.6",
     "three": "0.182.0",
     "zod": "^4"
   }

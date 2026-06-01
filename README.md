@@ -137,8 +137,10 @@ schema contract (`schemaVersion`). `game.yaml`, `app/components.ts`, and
 | `bun run typecheck`      | `tsc --noEmit` across all workspaces                                  |
 | `bun run gen:yaml`       | regenerate the canonical `game.yaml` from the level builder           |
 | `bun run test:roundtrip` | the zero-diff YAML round-trip acceptance test                         |
-| `bunx oxfmt . `          | format (matches the reference repo's config)                          |
+| `bunx oxfmt .`           | format (matches the reference repo's config)                          |
 | `bunx oxlint .`          | lint                                                                  |
+| `bun run warden`         | repo config/version consistency check (`@verekia/warden`)             |
+| `bun run all`            | format:check + lint + typecheck + warden — the CI gate                |
 
 ## Verification
 
@@ -166,3 +168,8 @@ Bun, React 19 (+ React Compiler), Next.js 16 (pages router, static export),
 React Three Fiber v10 (canary) + Drei v11 (alpha) on the Three.js **WebGPU**
 renderer (`three@0.182.0` with the required Bun patches), Zustand 5, Zod 4. These
 versions and patches mirror the reference `r3f-gamedev` repo exactly.
+
+Linting/formatting is **oxlint + oxfmt only** (no Prettier, no ESLint).
+**[`@verekia/warden`](https://www.npmjs.com/package/@verekia/warden)** enforces
+config + pinned-version consistency; `bun run all` (run by CI in
+`.github/workflows/ci.yml`) gates format, lint, typecheck, and warden.

@@ -9,6 +9,7 @@
         "@blenjs/core": "workspace:*",
         "@blenjs/runtime-three": "workspace:*",
         "@types/node": "25.7.0",
+        "@verekia/warden": "0.0.4",
         "oxfmt": "0.48.0",
         "oxlint": "1.63.0",
         "typescript": "6.0.3",
@@ -39,6 +40,7 @@
         "@types/react-dom": "19.2.3",
         "@types/three": "0.182.0",
         "babel-plugin-react-compiler": "1.0.0",
+        "portless": "0.13.0",
         "postcss": "8.5.14",
         "serve": "14.2.5",
         "tailwindcss": "4.3.0",
@@ -88,7 +90,7 @@
       },
       "peerDependencies": {
         "@react-three/fiber": "*",
-        "react": "^19",
+        "react": "19.2.6",
         "three": "0.182.0",
         "zod": "^4",
       },
@@ -357,6 +359,8 @@
 
     "@use-gesture/react": ["@use-gesture/react@10.3.1", "", { "dependencies": { "@use-gesture/core": "10.3.1" }, "peerDependencies": { "react": ">= 16.8.0" } }, "sha512-Yy19y6O2GJq8f7CHf7L0nxL8bf4PZCPaVOCgJrusOeFHY1LvHgYXnmnXg6N5iwAnbgbZCDjo60SiM6IPJi9C5g=="],
 
+    "@verekia/warden": ["@verekia/warden@0.0.4", "", { "bin": { "warden": "src/index.ts" } }, "sha512-xRWY5F3rpZfFoKpmAOpHQor59edQvQGoudKvNoSQHVZelpjwa3pr31H9ARCsuJ4QFvlKBV+Qbq3VocYi8KtWxg=="],
+
     "@webgpu/types": ["@webgpu/types@0.1.70", "", {}, "sha512-LFiNHHKMvmAEvwVew3JLJmTdShhbdwRFSImUshGhE2mGE8ybQzIo63l5uRp+YKnNx+8Qno8Kf6gN+DKMreIJCA=="],
 
     "@zeit/schemas": ["@zeit/schemas@2.36.0", "", {}, "sha512-7kjMwcChYEzMKjeex9ZFXkt1AyNov9R5HZtjBKVsmVpw7pa7ZtlCGvCBC2vnnXctaYN+aRI61HjIqeetZW5ROg=="],
@@ -552,6 +556,8 @@
     "path-to-regexp": ["path-to-regexp@3.3.0", "", {}, "sha512-qyCH421YQPS2WFDxDjftfc1ZR5WKQzVzqsp4n9M2kQhVOo/ByahFoUNJfl58kOcEGfQ//7weFTDhm+ss8Ecxgw=="],
 
     "picocolors": ["picocolors@1.1.1", "", {}, "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="],
+
+    "portless": ["portless@0.13.0", "", { "os": [ "linux", "win32", "darwin", ], "bin": { "portless": "dist/cli.js" } }, "sha512-PxMZ5BHH+ZZi9rTq4T8m003aZxh56qI0aBdNsxLn7jrTtvNJYBWYD3lc5PuQrom/aVh6z8iLb+tKUI6b7QNYQw=="],
 
     "postcss": ["postcss@8.5.14", "", { "dependencies": { "nanoid": "^3.3.11", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-SoSL4+OSEtR99LHFZQiJLkT59C5B1amGO1NzTwj7TT1qCUgUO6hxOvzkOYxD+vMrXBM3XJIKzokoERdqQq/Zmg=="],
 
