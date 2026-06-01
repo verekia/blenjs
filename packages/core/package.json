@@ -12,11 +12,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "zod": "^4"
-  },
   "devDependencies": {
     "typescript": "6.0.3",
     "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "zod": "^4"
   }
 }

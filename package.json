@@ -1,8 +1,11 @@
 {
   "name": "blenjs",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "app"
+  ],
   "type": "module",
-  "workspaces": ["packages/*", "app"],
   "scripts": {
     "codegen": "bun run scripts/codegen.ts",
     "gen:yaml": "python3 blender/tools/gen_game_yaml.py",

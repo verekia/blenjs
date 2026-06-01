@@ -43,7 +43,9 @@ export const loadScene = (game: RawGame, sceneName: string, registry: Registry):
   const scenes = game.scenes ?? {}
   const scene = scenes[sceneName]
   if (!scene) {
-    throw new ValidationError(`Scene "${sceneName}" not found. Available scenes: ${Object.keys(scenes).join(', ') || '(none)'}`)
+    throw new ValidationError(
+      `Scene "${sceneName}" not found. Available scenes: ${Object.keys(scenes).join(', ') || '(none)'}`,
+    )
   }
 
   const rawEntities = scene.entities ?? {}
@@ -64,9 +66,7 @@ export const loadScene = (game: RawGame, sceneName: string, registry: Registry):
       }
       const result = def.schema.safeParse(raw[key] ?? {})
       if (!result.success) {
-        const issues = result.error.issues
-          .map(i => `${i.path.join('.') || '(value)'}: ${i.message}`)
-          .join('; ')
+        const issues = result.error.issues.map(i => `${i.path.join('.') || '(value)'}: ${i.message}`).join('; ')
         errors.push(`Component "${key}" on entity ${uuid} (${name}): ${issues}`)
         continue
       }

@@ -59,7 +59,7 @@ export const Game = () => {
       <Canvas camera={{ position: [0, 4, 16], fov: 55 }}>{ready && <World />}</Canvas>
       {error && (
         <div className="fixed inset-0 flex items-center justify-center p-8">
-          <pre className="max-w-2xl whitespace-pre-wrap rounded bg-red-950/80 p-4 font-mono text-sm text-red-200">
+          <pre className="max-w-2xl rounded bg-red-950/80 p-4 font-mono text-sm whitespace-pre-wrap text-red-200">
             {error}
           </pre>
         </div>

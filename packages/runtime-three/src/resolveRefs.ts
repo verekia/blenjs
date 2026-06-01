@@ -56,7 +56,9 @@ export const resolveRefs = (entities: Entity[], registry: Registry): ResolvedSce
         const refs = rf.array ? (Array.isArray(value) ? value : []) : value == null ? [] : [value]
         for (const ref of refs) {
           if (typeof ref === 'string' && ref.length > 0 && !byId.has(ref)) {
-            errors.push(`Component "${name}" on entity ${e.uuid} (${e.name}): entityRef "${rf.field}" -> "${ref}" does not exist`)
+            errors.push(
+              `Component "${name}" on entity ${e.uuid} (${e.name}): entityRef "${rf.field}" -> "${ref}" does not exist`,
+            )
           }
         }
       }

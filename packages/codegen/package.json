@@ -15,12 +15,12 @@
   "dependencies": {
     "@blenjs/core": "workspace:*"
   },
-  "peerDependencies": {
-    "zod": "^4"
-  },
   "devDependencies": {
     "@types/node": "25.7.0",
     "typescript": "6.0.3",
     "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "zod": "^4"
   }
 }

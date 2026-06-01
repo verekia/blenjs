@@ -58,10 +58,16 @@ export const entityRef = () => z.string().meta({ blenjs: { kind: 'entityRef' } }
 // field as a vector rather than a generic array. Literal tuples keep Zod's typing of
 // `.default()` precise.
 export const vec2 = (def: Vec2 = [0, 0]) =>
-  z.tuple([z.number(), z.number()]).default(def).meta({ blenjs: { kind: 'vec2', subtype: 'XY' } })
+  z
+    .tuple([z.number(), z.number()])
+    .default(def)
+    .meta({ blenjs: { kind: 'vec2', subtype: 'XY' } })
 
 export const vec3 = (def: Vec3 = [0, 0, 0]) =>
-  z.tuple([z.number(), z.number(), z.number()]).default(def).meta({ blenjs: { kind: 'vec3', subtype: 'XYZ' } })
+  z
+    .tuple([z.number(), z.number(), z.number()])
+    .default(def)
+    .meta({ blenjs: { kind: 'vec3', subtype: 'XYZ' } })
 
 /** A vector whose 4th component is typically W (or RGBA when used as a colour). */
 export const vec4 = (def: Vec4 = [0, 0, 0, 0]) =>

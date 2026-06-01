@@ -56,7 +56,10 @@ export const Pickup = defineComponent({
   category: 'Gameplay',
   tooltip: 'Collectible. Player overlap removes it and adds value to the score.',
   schema: z.object({
-    kind: z.enum(['coin', 'gem', 'heart']).default('coin').meta({ blenjs: { tooltip: 'Pickup flavour' } }),
+    kind: z
+      .enum(['coin', 'gem', 'heart'])
+      .default('coin')
+      .meta({ blenjs: { tooltip: 'Pickup flavour' } }),
     value: meta(z.int().min(0).max(1000).default(10), { tooltip: 'Score awarded' }),
   }),
   system: pickup,
@@ -86,8 +89,14 @@ export const Patrol = defineComponent({
   tooltip: 'Moves the entity between waypoint entities, turning at the ends.',
   schema: z.object({
     speed: meta(z.number().min(0).max(20).default(2), { step: 0.1, tooltip: 'Patrol speed (units/sec)' }),
-    waypoints: z.array(entityRef()).default([]).meta({ blenjs: { tooltip: 'Ordered waypoint entities' } }),
-    loop: z.boolean().default(true).meta({ blenjs: { tooltip: 'Cycle the path vs. ping-pong' } }),
+    waypoints: z
+      .array(entityRef())
+      .default([])
+      .meta({ blenjs: { tooltip: 'Ordered waypoint entities' } }),
+    loop: z
+      .boolean()
+      .default(true)
+      .meta({ blenjs: { tooltip: 'Cycle the path vs. ping-pong' } }),
   }),
   system: patrol,
 })

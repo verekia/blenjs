@@ -9,7 +9,7 @@
     "prebuild": "node scripts/sync-yaml.mjs",
     "build": "next build",
     "start": "serve out",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@blenjs/core": "workspace:*",

@@ -32,8 +32,9 @@ assert(version === registry.version, `schemaVersion ${version} matches registry`
 assert(entities.length === 16, `loaded 16 entities (got ${entities.length})`)
 
 const enemy = entities.find(e => e.name === 'enemy_01')
-assert(!!enemy?.components.Patrol, 'enemy_01 has Patrol')
-const wps = (enemy?.components.Patrol as { waypoints: string[] }).waypoints
+const patrolData = enemy?.components.Patrol as { waypoints: string[] } | undefined
+assert(!!patrolData, 'enemy_01 has Patrol')
+const wps = patrolData?.waypoints ?? []
 assert(wps.length === 2 && wps.every(w => byId.has(w)), 'enemy_01 waypoints resolve to real entities')
 
 const spawn = entities.find(e => e.components.PlayerSpawn)
