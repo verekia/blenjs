@@ -1,0 +1,50 @@
+{
+  "name": "blenjs",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "app"
+  ],
+  "type": "module",
+  "scripts": {
+    "codegen": "bun run scripts/codegen.ts",
+    "gen:yaml": "python3 blender/tools/gen_game_yaml.py",
+    "test:roundtrip": "python3 blender/tests/test_roundtrip.py",
+    "watch": "bun run scripts/watch.ts",
+    "dev": "bun run --filter blenjs-app dev",
+    "build": "bun run codegen && bun run --filter blenjs-app build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint:fix": "oxlint --fix .",
+    "warden": "warden",
+    "all": "bun run format:check && bun run lint && bun run typecheck && bun run warden",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint ."
+  },
+  "devDependencies": {
+    "@blenjs/codegen": "workspace:*",
+    "@blenjs/core": "workspace:*",
+    "@blenjs/runtime-three": "workspace:*",
+    "@types/node": "25.7.0",
+    "@verekia/warden": "0.0.4",
+    "oxfmt": "0.48.0",
+    "oxlint": "1.63.0",
+    "typescript": "6.0.3"
+  },
+  "overrides": {
+    "three": "0.182.0"
+  },
+  "patchedDependencies": {
+    "three@0.182.0": "patches/three@0.182.0.patch",
+    "detect-gpu@5.0.70": "patches/detect-gpu@5.0.70.patch"
+  },
+  "warden": {
+    "checks": {
+      "typecheckScript": {
+        "modes": {
+          "blenjs": "bun-filter-all"
+        }
+      }
+    }
+  }
+}

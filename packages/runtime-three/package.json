@@ -1,0 +1,26 @@
+{
+  "name": "@blenjs/runtime-three",
+  "version": "0.0.0",
+  "description": "BlenJS headless runtime: YAML -> validated data -> entities + UUID ref resolution. No react.",
+  "type": "module",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@blenjs/core": "workspace:*",
+    "yaml": "2.6.1"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "zod": "4.4.3"
+  },
+  "peerDependencies": {
+    "zod": "^4"
+  }
+}

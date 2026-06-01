@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "@blenjs/codegen",
+  "components": [
+    {
+      "name": "Transform",
+      "category": "Core",
+      "hasSystem": false,
+      "fields": [
+        {
+          "name": "pos",
+          "type": "vec3",
+          "required": false,
+          "default": [
+            0,
+            0,
+            0
+          ],
+          "subtype": "XYZ"
+        },
+        {
+          "name": "rot",
+          "type": "vec3",
+          "required": false,
+          "default": [
+            0,
+            0,
+            0
+          ],
+          "subtype": "XYZ"
+        },
+        {
+          "name": "scale",
+          "type": "vec3",
+          "required": false,
+          "default": [
+            1,
+            1,
+            1
+          ],
+          "subtype": "XYZ"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "pos": {
+            "default": [
+              0,
+              0,
+              0
+            ],
+            "blenjs": {
+              "kind": "vec3",
+              "subtype": "XYZ"
+            },
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "rot": {
+            "default": [
+              0,
+              0,
+              0
+            ],
+            "blenjs": {
+              "kind": "vec3",
+              "subtype": "XYZ"
+            },
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "scale": {
+            "default": [
+              1,
+              1,
+              1
+            ],
+            "blenjs": {
+              "kind": "vec3",
+              "subtype": "XYZ"
+            },
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "required": [
+          "pos",
+          "rot",
+          "scale"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "Position, rotation (Euler XYZ, radians) and scale."
+    },
+    {
+      "name": "Collider",
+      "category": "Physics",
+      "hasSystem": false,
+      "fields": [
+        {
+          "name": "shape",
+          "type": "enum",
+          "required": true,
+          "enumValues": [
+            "box",
+            "sphere",
+            "capsule"
+          ],
+          "tooltip": "Collision shape"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "shape": {
+            "type": "string",
+            "enum": [
+              "box",
+              "sphere",
+              "capsule"
+            ],
+            "blenjs": {
+              "tooltip": "Collision shape"
+            }
+          }
+        },
+        "required": [
+          "shape"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "Solid volume. A box uses the entity Transform.scale as full size — parametric blockout, no .glb needed."
+    },
+    {
+      "name": "Player",
+      "category": "Gameplay",
+      "hasSystem": true,
+      "fields": [
+        {
+          "name": "moveSpeed",
+          "type": "number",
+          "required": false,
+          "default": 6,
+          "min": 0,
+          "max": 40,
+          "step": 0.1,
+          "tooltip": "Horizontal speed (units/sec)"
+        },
+        {
+          "name": "jumpForce",
+          "type": "number",
+          "required": false,
+          "default": 11,
+          "min": 0,
+          "max": 40,
+          "step": 0.1,
+          "tooltip": "Initial jump velocity"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "moveSpeed": {
+            "default": 6,
+            "blenjs": {
+              "step": 0.1,
+              "tooltip": "Horizontal speed (units/sec)"
+            },
+            "type": "number",
+            "minimum": 0,
+            "maximum": 40
+          },
+          "jumpForce": {
+            "default": 11,
+            "blenjs": {
+              "step": 0.1,
+              "tooltip": "Initial jump velocity"
+            },
+            "type": "number",
+            "minimum": 0,
+            "maximum": 40
+          }
+        },
+        "required": [
+          "moveSpeed",
+          "jumpForce"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "Marks the player avatar and tunes movement."
+    },
+    {
+      "name": "PlayerSpawn",
+      "category": "Gameplay",
+      "hasSystem": false,
+      "fields": [],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "tooltip": "Where the player is spawned at runtime. Pure marker (no fields)."
+    },
+    {
+      "name": "Pickup",
+      "category": "Gameplay",
+      "hasSystem": true,
+      "fields": [
+        {
+          "name": "kind",
+          "type": "enum",
+          "required": false,
+          "default": "coin",
+          "enumValues": [
+            "coin",
+            "gem",
+            "heart"
+          ],
+          "tooltip": "Pickup flavour"
+        },
+        {
+          "name": "value",
+          "type": "int",
+          "required": false,
+          "default": 10,
+          "min": 0,
+          "max": 1000,
+          "tooltip": "Score awarded"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "kind": {
+            "default": "coin",
+            "blenjs": {
+              "tooltip": "Pickup flavour"
+            },
+            "type": "string",
+            "enum": [
+              "coin",
+              "gem",
+              "heart"
+            ]
+          },
+          "value": {
+            "default": 10,
+            "blenjs": {
+              "tooltip": "Score awarded"
+            },
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "Collectible. Player overlap removes it and adds value to the score."
+    },
+    {
+      "name": "Enemy",
+      "category": "AI",
+      "hasSystem": false,
+      "fields": [
+        {
+          "name": "health",
+          "type": "int",
+          "required": false,
+          "default": 3,
+          "min": 1,
+          "max": 100,
+          "tooltip": "Hit points"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "health": {
+            "default": 3,
+            "blenjs": {
+              "tooltip": "Hit points"
+            },
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "health"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "Marks a hostile entity."
+    },
+    {
+      "name": "Damageable",
+      "category": "Combat",
+      "hasSystem": false,
+      "fields": [
+        {
+          "name": "health",
+          "type": "int",
+          "required": false,
+          "default": 3,
+          "min": 1,
+          "max": 100,
+          "tooltip": "Hit points"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "health": {
+            "default": 3,
+            "blenjs": {
+              "tooltip": "Hit points"
+            },
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "health"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "Takes damage from bullets; removed when health reaches 0."
+    },
+    {
+      "name": "Patrol",
+      "category": "AI",
+      "hasSystem": true,
+      "fields": [
+        {
+          "name": "speed",
+          "type": "number",
+          "required": false,
+          "default": 2,
+          "min": 0,
+          "max": 20,
+          "step": 0.1,
+          "tooltip": "Patrol speed (units/sec)"
+        },
+        {
+          "name": "waypoints",
+          "type": "array",
+          "required": false,
+          "itemType": "entityRef",
+          "default": [],
+          "tooltip": "Ordered waypoint entities"
+        },
+        {
+          "name": "loop",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "tooltip": "Cycle the path vs. ping-pong"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "speed": {
+            "default": 2,
+            "blenjs": {
+              "step": 0.1,
+              "tooltip": "Patrol speed (units/sec)"
+            },
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "waypoints": {
+            "default": [],
+            "blenjs": {
+              "tooltip": "Ordered waypoint entities"
+            },
+            "type": "array",
+            "items": {
+              "type": "string",
+              "blenjs": {
+                "kind": "entityRef"
+              }
+            }
+          },
+          "loop": {
+            "default": true,
+            "blenjs": {
+              "tooltip": "Cycle the path vs. ping-pong"
+            },
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "speed",
+          "waypoints",
+          "loop"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "Moves the entity between waypoint entities, turning at the ends."
+    },
+    {
+      "name": "Goal",
+      "category": "Gameplay",
+      "hasSystem": false,
+      "fields": [],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "tooltip": "The level end trigger. Pure-data marker; win detection is a runtime system."
+    }
+  ]
+}
