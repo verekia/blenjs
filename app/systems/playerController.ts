@@ -16,7 +16,16 @@ export type PlayerRuntime = {
 }
 
 const getRuntime = (e: Entity): PlayerRuntime => {
-  if (!e.runtime) e.runtime = { vx: 0, vy: 0, grounded: false, dir: 1, fireCd: 0 }
+  // hydrateFromYaml seeds every entity's runtime to `{}`, so `!e.runtime` was never
+  // true — the old guard left vx/vy/… undefined, and `rt.vy += GRAVITY*dt` turned
+  // the player position into NaN (which propagated to the follow camera and blanked
+  // the whole render). Seed each field defensively, like patrol/shoot already do.
+  const rt = (e.runtime ??= {}) as Partial<PlayerRuntime>
+  rt.vx ??= 0
+  rt.vy ??= 0
+  rt.grounded ??= false
+  rt.dir ??= 1
+  rt.fireCd ??= 0
   return e.runtime as unknown as PlayerRuntime
 }
 

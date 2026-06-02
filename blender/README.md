@@ -27,6 +27,11 @@ symlink `blender/blenjs_addon` into your Blender `addons/` folder, then enable i
 When loaded from the repo, the add-on finds `generated/components.schema.json`
 automatically (repo-relative).
 
+> **Reinstalling? Restart Blender.** Blender does not re-import an add-on's Python
+> modules on reinstall — the old code stays live in memory, so a fresh zip can look
+> like it changed nothing. After **Install from Disk…** (or any code change), restart
+> Blender to load the new code.
+
 ### Where the schema comes from
 
 The add-on locates `components.schema.json` in this order:
@@ -48,6 +53,14 @@ registry (`app/components.ts`).
    component). In Object Properties ▸ **BlenJS**, use **Add Component** (grouped by
    category) to attach typed components; entity-ref fields are drag-to-assign
    object pointers; array refs (e.g. `Patrol.waypoints`) use a list.
+
+   > **Coordinates** — the game is **Y-up** (three.js/R3F); Blender is **Z-up**.
+   > Import/export convert between them (a +90° rotation about X, applied per object
+   > by conjugation), so a level authored Y-up *stands upright* in Blender's Z-up
+   > viewport and you design with Z as up as usual. `game.yaml` always stays Y-up;
+   > the conversion is exactly invertible (see `blenjs_addon/transform.py`). Note the
+   > two engines define Euler `'XYZ'` differently (three.js `Rx·Ry·Rz` vs Blender
+   > `Rz·Ry·Rx`), so rotations are converted through matrices, not copied verbatim.
 3. **Save** — **Cmd/Ctrl+S** writes canonical YAML back to the original path. Save
    is rebound to the BlenJS export operator (we don't rely on `save_pre`, which
    only fires for real `.blend` saves).
@@ -64,14 +77,33 @@ Blender's own dirty flag may still prompt on quit/load. That's harmless — the 
 save already happened on Cmd/Ctrl+S, and a discarded `.blend` costs nothing. Just
 choose *Don't Save*.
 
-## Tests (no Blender required)
+## Tests
 
-The canonicalizer is `bpy`-free and unit-tested:
+CI (no Blender required) — the canonicalizer is `bpy`-free and the datablock path
+runs against a faithful fake `bpy`:
 
 ```bash
 bun run test:roundtrip                          # load game.yaml -> save -> ZERO diff (+ normalization)
 python3 blender/tests/test_blender_roundtrip.py # datablock round-trip via a fake bpy (load->datablocks->save = 0 diff)
+python3 blender/tests/test_transform.py         # Y-up<->Z-up conversion: conventions + exact round-trip
 ```
 
-The authoritative check is still running the add-on inside Blender, but these
-guard the data path in CI.
+> The fake models Blender's two property namespaces separately: ID-properties
+> (`obj["k"]` / `obj.get("k")`) and registered RNA props (`obj.k`). They never see
+> each other in real Blender, so `blenjs_uuid` identity must use **one** of them
+> consistently (we use ID-properties). Mixing the two — writing `obj.blenjs_uuid =`
+> but reading `obj.get("blenjs_uuid")` — makes `ensure_uuid` re-mint a UUID on every
+> call, which corrupts entity-refs. This test catches that.
+
+Authoritative (inside real Blender, headless):
+
+```bash
+# ruamel.yaml must be importable by Blender's bundled python. Either install it
+# into Blender, or point BLENJS_PYLIBS at a dir that has it:
+BLENJS_PYLIBS=/path/with/ruamel \
+  blender --background --factory-startup \
+    --python blender/tests/test_in_blender.py
+```
+
+This drives the real add-on against the real `bpy`: byte-stable round-trip,
+entity-ref (`Patrol.waypoints`) stability, and idempotent re-import.

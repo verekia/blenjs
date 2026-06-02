@@ -13,7 +13,7 @@ import os
 import bmesh
 import bpy
 
-from . import io_yaml, schema
+from . import io_yaml, schema, transform
 from .uuids import ensure_uuid
 
 UNIT_CUBE = "BLENJS_UnitCube"
@@ -52,13 +52,15 @@ def _create_object(uuid: str, ent: dict, scene, sch: "io_yaml.Schema"):
         obj.empty_display_type = "PLAIN_AXES"
         obj.empty_display_size = 0.4
     scene.collection.objects.link(obj)
-    obj.blenjs_uuid = uuid
+    obj["blenjs_uuid"] = uuid  # ID-property — the one namespace ensure_uuid reads (see uuids.py)
 
-    # Native transform.
+    # Native transform — convert the Y-up game frame into Blender's Z-up frame so
+    # the level stands upright in the viewport (see transform.py).
     t = ent.get("Transform") or {}
-    obj.location = tuple(t.get("pos", [0, 0, 0]))
-    obj.rotation_euler = tuple(t.get("rot", [0, 0, 0]))
-    obj.scale = tuple(t.get("scale", [1, 1, 1]))
+    pos, rot, scale = transform.game_to_blender(t.get("pos"), t.get("rot"), t.get("scale"))
+    obj.location = tuple(pos)
+    obj.rotation_euler = tuple(rot)
+    obj.scale = tuple(scale)
 
     # Scalar component fields (refs handled in pass 2).
     for comp_name, comp_data in ent.items():
@@ -131,7 +133,9 @@ def import_game(filepath: str, context) -> str:
         raise RuntimeError("BlenJS schema not loaded — set the schema path in add-on preferences.")
 
     data = io_yaml.load_file(filepath)
-    context.window_manager.blenjs_filepath = os.path.abspath(filepath)
+    wm = getattr(context, "window_manager", None)
+    if wm is not None:  # absent under --background; harmless to skip the Cmd/Ctrl+S stash
+        wm.blenjs_filepath = os.path.abspath(filepath)
 
     scenes_data = data.get("scenes") or {}
     first_scene = None
@@ -152,8 +156,9 @@ def import_game(filepath: str, context) -> str:
         if first_scene is None:
             first_scene = sc
 
-    if first_scene is not None:
-        context.window.scene = first_scene
+    win = getattr(context, "window", None)
+    if first_scene is not None and win is not None:  # no window under --background
+        win.scene = first_scene
     return filepath
 
 
@@ -192,13 +197,12 @@ def build_data(sch: "io_yaml.Schema") -> dict:
         ents = {}
         for obj in sc.collection.all_objects:
             uuid = ensure_uuid(obj)
+            pos, rot, scale = transform.blender_to_game(
+                list(obj.location), list(obj.rotation_euler), list(obj.scale)
+            )
             ent = {
                 "name": obj.name,
-                "Transform": {
-                    "pos": list(obj.location),
-                    "rot": list(obj.rotation_euler),
-                    "scale": list(obj.scale),
-                },
+                "Transform": {"pos": pos, "rot": rot, "scale": scale},
             }
             for comp in sch.components.values():
                 cname = comp["name"]

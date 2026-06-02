@@ -196,9 +196,10 @@ def register() -> None:
     bpy.utils.register_class(BLENJS_PG_ObjectRef)
     _registered_classes.append(BLENJS_PG_ObjectRef)
 
-    # Identity property.
-    bpy.types.Object.blenjs_uuid = StringProperty(name="BlenJS UUID", default="")
-    _object_attrs.append("blenjs_uuid")
+    # Identity (``blenjs_uuid``) is a plain ID-property, NOT a registered RNA
+    # StringProperty — see uuids.py. Registering it here would create a second
+    # storage namespace (``obj.blenjs_uuid``) invisible to ``obj.get()``, breaking
+    # UUID round-trip. It is stamped lazily via ``ensure_uuid`` (``obj["blenjs_uuid"]``).
 
     for component in behavior_or_data_components():
         name = component["name"]

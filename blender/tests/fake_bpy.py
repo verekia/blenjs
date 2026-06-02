@@ -128,11 +128,28 @@ class Object(metaclass=_ObjectMeta):
         object.__setattr__(self, "scale", [1.0, 1.0, 1.0])
         object.__setattr__(self, "empty_display_type", "PLAIN_AXES")
         object.__setattr__(self, "empty_display_size", 1.0)
-        object.__setattr__(self, "_custom", {})
+        object.__setattr__(self, "_custom", {})  # ID-properties: obj["k"] / obj.get("k")
+        object.__setattr__(self, "_rna", {})  # registered RNA props: obj.attr
         object.__setattr__(self, "_pgs", {})
 
+    # ID-property API. CRITICAL: this is a *separate* namespace from registered RNA
+    # props (obj.attr) — exactly as in real Blender. A value written via the
+    # attribute (obj.foo = x) is NOT visible here, and vice-versa. The add-on once
+    # wrote blenjs_uuid via the attribute but read it via .get(); under real Blender
+    # that read always missed, so ensure_uuid minted a fresh UUID every call and
+    # entity-refs pointed at entities that never existed. Modelling the split lets
+    # this test catch that regression instead of hiding it.
     def get(self, key, default=None):
         return self._custom.get(key, default)
+
+    def __getitem__(self, key):
+        return self._custom[key]
+
+    def __setitem__(self, key, value):
+        self._custom[key] = value
+
+    def keys(self):
+        return list(self._custom.keys())
 
     def __getattr__(self, name):  # only called when normal lookup fails
         props = type(self)._bjs_props
@@ -142,13 +159,13 @@ class Object(metaclass=_ObjectMeta):
                 if name not in self._pgs:
                     self._pgs[name] = p.type()
                 return self._pgs[name]
-            return self._custom.get(name, _default_for(p))
+            return self._rna.get(name, _default_for(p))
         raise AttributeError(name)
 
     def __setattr__(self, name, value):
         props = type(self)._bjs_props
-        if name in props and props[name].kind in ("bool", "string"):
-            self._custom[name] = value
+        if name in props and props[name].kind not in ("pointer", "collection"):
+            self._rna[name] = value
         else:
             object.__setattr__(self, name, value)
 
