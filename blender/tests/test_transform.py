@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Y-up <-> Z-up Transform conversion checks (pure Python, no Blender required).
+"""Z-up Transform conversion checks (pure Python, no Blender required).
 
-Pins the rotation conventions to the real engines and proves invertibility:
+Both the game and Blender are Z-up, so position and scale pass through
+untouched; only the Euler *order* is reconciled. The checks pin the rotation
+conventions to the real engines and prove invertibility:
 
   A. euler->matrix matches three.js ('XYZ' = Rx·Ry·Rz) and Blender's mathutils
      ('XYZ' = Rz·Ry·Rx) for a reference angle. Golden matrices were captured from
      `THREE.Matrix4().makeRotationFromEuler` and `mathutils.Euler.to_matrix`.
   B. blender_to_game(game_to_blender(x)) == x  (the editor round-trip is exact).
   C. euler->matrix->euler is identity for both conventions (extraction is a true
-     inverse), incl. the upright spot-checks the feature is about.
+     inverse).
 """
 
 import math
@@ -74,11 +76,11 @@ def main() -> int:
     check(_mat_close(T.euler_three_to_mat(0.1, 0.2, 0.3), THREE_XYZ, 1e-5), "three.js 'XYZ' euler->matrix (Rx·Ry·Rz)")
     check(_mat_close(T.euler_blender_to_mat(0.1, 0.2, 0.3), BLENDER_XYZ, 1e-7), "Blender 'XYZ' euler->matrix (Rz·Ry·Rx)")
 
-    # spot-checks: a Y-up level stands upright; depth/up axes swap; pos is (x,-z,y)
-    pb, rb, sb = T.game_to_blender([5, 3, 0], [0, 0, 0], [3, 0.5, 3])
-    check(_vec_close(pb, [5, 0, 3]) and _vec_close(sb, [3, 3, 0.5]), "game (5,3,0)/scale(3,.5,3) -> blender (5,0,3)/scale(3,3,.5)")
+    # spot-checks: both frames are Z-up, so position & scale pass through unchanged
+    pb, rb, sb = T.game_to_blender([5, 0, 3], [0, 0, 0], [3, 3, 0.5])
+    check(_vec_close(pb, [5, 0, 3]) and _vec_close(sb, [3, 3, 0.5]), "game -> blender leaves pos & scale unchanged (Z-up == Z-up)")
     pg, rg, sg = T.blender_to_game([5, 0, 3], [0, 0, 0], [3, 3, 0.5])
-    check(_vec_close(pg, [5, 3, 0]) and _vec_close(sg, [3, 0.5, 3]), "blender -> game inverts pos & scale exactly")
+    check(_vec_close(pg, [5, 0, 3]) and _vec_close(sg, [3, 3, 0.5]), "blender -> game leaves pos & scale unchanged")
 
     # B. editor round-trip. Position & scale are algebraically exact; orientation
     #    is exact away from gimbal lock, and bounded at it (Euler extraction is

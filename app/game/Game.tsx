@@ -1,6 +1,7 @@
 import { Level } from '@blenjs/runtime-r3f'
 import { Canvas } from '@react-three/fiber/webgpu'
 import { useCallback, useEffect, useState } from 'react'
+import { Object3D } from 'three'
 import { Bullets } from './Bullets'
 import { fetchAndHydrate, hydrateFromYaml } from './context'
 import { HUD } from './HUD'
@@ -8,6 +9,14 @@ import { useInput } from './input'
 import { renderEntity } from './Level'
 import { useGame } from './store'
 import { GameSystems } from './Systems'
+
+// The world is Z-up right-handed (same frame as Blender / game.yaml): X right,
+// Y depth, Z up. three.js has no hardcoded world up — it only reads `Object3D.up`
+// for `lookAt()` and controls — so we point the default up at +Z before any
+// camera is created. The renderer is unaffected; only orientation math is.
+// (glTF models are Y-up by spec: wrap them in a group with rotation.x = +90° to
+// lift them into this Z-up world when model loading is added.)
+Object3D.DEFAULT_UP.set(0, 0, 1)
 
 const World = () => {
   const order = useGame(s => s.order)
@@ -56,7 +65,12 @@ export const Game = () => {
 
   return (
     <>
-      <Canvas camera={{ position: [0, 4, 16], fov: 55 }}>{ready && <World />}</Canvas>
+      <Canvas
+        camera={{ position: [0, -16, 4], up: [0, 0, 1], fov: 55 }}
+        onCreated={({ camera }) => camera.up.set(0, 0, 1)}
+      >
+        {ready && <World />}
+      </Canvas>
       {error && (
         <div className="fixed inset-0 flex items-center justify-center p-8">
           <pre className="max-w-2xl rounded bg-red-950/80 p-4 font-mono text-sm whitespace-pre-wrap text-red-200">

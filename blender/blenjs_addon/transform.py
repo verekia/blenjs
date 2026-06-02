@@ -1,19 +1,20 @@
-"""Y-up (game / three.js) <-> Z-up (Blender) Transform conversion (spec §6.6).
+"""Z-up Transform conversion (spec §6.6).
 
-The game is **Y-up**: the runtime feeds ``Transform.rot`` to a ``THREE.Euler`` in
-``'XYZ'`` order, whose matrix is ``Rx·Ry·Rz``. Blender is **Z-up** and stores
-``rotation_euler`` as a Blender ``Euler('XYZ')``, whose matrix is ``Rz·Ry·Rx``.
-Those two ``'XYZ'`` conventions are *different rotations* for the same triple, so
-rotation is always converted through a rotation matrix, decoded with whichever
-convention belongs to that side.
+The game is **Z-up right-handed**, the same world frame as Blender: X right, Y
+depth (forward), Z up. Position and scale are therefore *identical* on both
+sides — they pass through untouched. The only thing that still differs is the
+Euler *order* the two engines use for the same ``'XYZ'`` triple:
 
-The world conversion is a fixed +90° rotation about X (``C``), applied to each
-object's transform by **conjugation** so an axis-aligned object stays axis-aligned
-— only which axis is "up" changes. A Y-up level then stands upright in Blender's
-Z-up viewport instead of lying flat along +Y.
+* **Three.js** ``THREE.Euler('XYZ')`` builds ``R = Rx·Ry·Rz``.
+* **Blender** ``Euler('XYZ')`` builds ``R = Rz·Ry·Rx``.
 
-    pos_blender    = C · pos_game                      ( = (x, -z, y) )
-    linear_blender = C · (R_game · S_game) · Cᵀ        -> decode Blender rot + scale
+Those are different rotations for the same three numbers, so rotation is still
+converted by building the matrix with one convention and decoding it with the
+other — never copied verbatim. Everything else is the identity.
+
+    pos_blender   = pos_game
+    scale_blender = scale_game
+    rot_blender   = decode_blender( build_three(rot_game) )
 
 and exactly the inverse on save. This module is pure Python (no ``bpy`` /
 ``mathutils``) so the data path stays unit-testable in CI and byte-stable; the
@@ -24,22 +25,12 @@ from __future__ import annotations
 
 import math
 
-# C: game (Y-up) -> blender (Z-up) is +90° about X.
-#   C  = [[1,0,0],[0,0,-1],[0,1,0]]   C·(x,y,z)  = (x, -z, y)
-#   Cᵀ = [[1,0,0],[0,0,1],[0,-1,0]]   Cᵀ·(x,y,z) = (x, z, -y)
-_C = ((1.0, 0.0, 0.0), (0.0, 0.0, -1.0), (0.0, 1.0, 0.0))
-_CT = ((1.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, -1.0, 0.0))
-
 
 # --------------------------------------------------------------------------- #
 # Tiny 3x3 linear algebra
 # --------------------------------------------------------------------------- #
 def _matmul(a, b):
     return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
-
-
-def _matvec(a, v):
-    return [a[i][0] * v[0] + a[i][1] * v[1] + a[i][2] * v[2] for i in range(3)]
 
 
 def _rx(t):
@@ -99,19 +90,6 @@ def mat_to_euler_blender(m):
     return [x, y, z]
 
 
-# --------------------------------------------------------------------------- #
-# Linear-part decompose (R · diag(scale), positive scale, no shear/mirror)
-# --------------------------------------------------------------------------- #
-def _scaled(r, scale):
-    return [[r[i][c] * scale[c] for c in range(3)] for i in range(3)]
-
-
-def _decompose(m):
-    scale = [math.sqrt(m[0][c] ** 2 + m[1][c] ** 2 + m[2][c] ** 2) for c in range(3)]
-    rot = [[(m[i][c] / scale[c] if scale[c] else float(i == c)) for c in range(3)] for i in range(3)]
-    return rot, scale
-
-
 def _vec3(v, default):
     seq = list(v) if isinstance(v, (list, tuple)) else list(default)
     seq = [float(x) for x in (seq + list(default))[:3]]
@@ -122,20 +100,20 @@ def _vec3(v, default):
 # Public API
 # --------------------------------------------------------------------------- #
 def game_to_blender(pos, rot, scale):
-    """YAML (Y-up, three.js euler) -> Blender (Z-up, Blender euler)."""
+    """YAML (Z-up, three.js euler) -> Blender (Z-up, Blender euler).
+
+    Both frames are Z-up, so position and scale are identical; only the Euler
+    order is reconciled (three.js Rx·Ry·Rz -> Blender Rz·Ry·Rx).
+    """
     pos = _vec3(pos, (0.0, 0.0, 0.0))
     rot = _vec3(rot, (0.0, 0.0, 0.0))
     scale = _vec3(scale, (1.0, 1.0, 1.0))
-    linear = _matmul(_matmul(_C, _scaled(euler_three_to_mat(*rot), scale)), _CT)
-    r_b, s_b = _decompose(linear)
-    return _matvec(_C, pos), mat_to_euler_blender(r_b), s_b
+    return pos, mat_to_euler_blender(euler_three_to_mat(*rot)), scale
 
 
 def blender_to_game(pos, rot, scale):
-    """Blender (Z-up, Blender euler) -> YAML (Y-up, three.js euler)."""
+    """Blender (Z-up, Blender euler) -> YAML (Z-up, three.js euler)."""
     pos = _vec3(pos, (0.0, 0.0, 0.0))
     rot = _vec3(rot, (0.0, 0.0, 0.0))
     scale = _vec3(scale, (1.0, 1.0, 1.0))
-    linear = _matmul(_matmul(_CT, _scaled(euler_blender_to_mat(*rot), scale)), _C)
-    r_g, s_g = _decompose(linear)
-    return _matvec(_CT, pos), mat_to_euler_three(r_g), s_g
+    return pos, mat_to_euler_three(euler_blender_to_mat(*rot)), scale
