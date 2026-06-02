@@ -42,10 +42,12 @@ export const GameSystems = () => {
       const p = (player.components.Transform as TransformData).pos
       const cam = state.camera
       const k = Math.min(1, dt * 6)
+      // Z-up world: follow the player on X, hold the camera back along -Y (depth),
+      // and track height on Z with a small offset so we look slightly down.
       cam.position.x += (p[0] - cam.position.x) * k
-      cam.position.y += (p[1] + 2.5 - cam.position.y) * k
-      cam.position.z += (16 - cam.position.z) * k
-      cam.lookAt(p[0], p[1], 0)
+      cam.position.y += (-16 - cam.position.y) * k
+      cam.position.z += (p[2] + 2.5 - cam.position.z) * k
+      cam.lookAt(p[0], 0, p[2])
     }
   })
   return null

@@ -54,13 +54,14 @@ registry (`app/components.ts`).
    category) to attach typed components; entity-ref fields are drag-to-assign
    object pointers; array refs (e.g. `Patrol.waypoints`) use a list.
 
-   > **Coordinates** — the game is **Y-up** (three.js/R3F); Blender is **Z-up**.
-   > Import/export convert between them (a +90° rotation about X, applied per object
-   > by conjugation), so a level authored Y-up *stands upright* in Blender's Z-up
-   > viewport and you design with Z as up as usual. `game.yaml` always stays Y-up;
-   > the conversion is exactly invertible (see `blenjs_addon/transform.py`). Note the
-   > two engines define Euler `'XYZ'` differently (three.js `Rx·Ry·Rz` vs Blender
-   > `Rz·Ry·Rx`), so rotations are converted through matrices, not copied verbatim.
+   > **Coordinates** — the game and Blender share one frame: **Z-up right-handed**
+   > (X right, Y depth, Z up). Position and scale are *identical* on both sides and
+   > pass through untouched; `game.yaml` is Z-up too. The one thing that still
+   > differs is the Euler *order* for the same `'XYZ'` triple (three.js `Rx·Ry·Rz`
+   > vs Blender `Rz·Ry·Rx`), so rotations are reconciled through matrices, not
+   > copied verbatim (see `blenjs_addon/transform.py`). On the three.js side the
+   > world is rendered Z-up by setting `Object3D.DEFAULT_UP` to +Z. (glTF is Y-up by
+   > spec; lift imported models into the world with a +90° rotation about X.)
 3. **Save** — **Cmd/Ctrl+S** writes canonical YAML back to the original path. Save
    is rebound to the BlenJS export operator (we don't rely on `save_pre`, which
    only fires for real `.blend` saves).
@@ -85,7 +86,7 @@ runs against a faithful fake `bpy`:
 ```bash
 bun run test:roundtrip                          # load game.yaml -> save -> ZERO diff (+ normalization)
 python3 blender/tests/test_blender_roundtrip.py # datablock round-trip via a fake bpy (load->datablocks->save = 0 diff)
-python3 blender/tests/test_transform.py         # Y-up<->Z-up conversion: conventions + exact round-trip
+python3 blender/tests/test_transform.py         # Z-up Euler-order conversion: conventions + exact round-trip
 ```
 
 > The fake models Blender's two property namespaces separately: ID-properties

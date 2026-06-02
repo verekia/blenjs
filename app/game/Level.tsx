@@ -54,7 +54,7 @@ const PickupMesh = ({ entity }: { entity: Entity }) => {
   const pos = transformOf(entity)?.pos ?? [0, 0, 0]
   const isGem = (entity.components.Pickup as PickupData).kind === 'gem'
   useFrame((_, dt) => {
-    if (ref.current) ref.current.rotation.y += dt * 2.2
+    if (ref.current) ref.current.rotation.z += dt * 2.2 // spin around the up axis (Z-up)
   })
   return (
     <mesh ref={ref} position={[pos[0], pos[1], pos[2]]}>
@@ -65,7 +65,7 @@ const PickupMesh = ({ entity }: { entity: Entity }) => {
 }
 
 const GoalMesh = ({ pos }: { pos: number[] }) => (
-  <mesh position={[pos[0], pos[1] + 0.6, pos[2]]} scale={[0.5, 2.4, 0.5]}>
+  <mesh position={[pos[0], pos[1], pos[2] + 0.6]} scale={[0.5, 0.5, 2.4]}>
     <boxGeometry />
     <meshBasicMaterial color="#d946ef" />
   </mesh>
@@ -82,7 +82,7 @@ export const renderEntity = (e: Entity): ReactNode => {
   const pos = t.pos
   const scale = t.scale ?? [1, 1, 1]
 
-  if (e.components.Player) return <DynamicBox entity={e} color="#34d399" size={[0.8, 1, 0.8]} />
+  if (e.components.Player) return <DynamicBox entity={e} color="#34d399" size={[0.8, 0.8, 1]} />
   if (e.components.Enemy) return <DynamicBox entity={e} color="#ef4444" size={[0.8, 0.8, 0.8]} />
   if (e.components.Pickup) return <PickupMesh entity={e} />
   if (e.components.Goal) return <GoalMesh pos={pos} />

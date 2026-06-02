@@ -79,7 +79,7 @@ def main() -> int:
     ents["81a2c5e0"]["Patrol"].pop("speed", None)
     # whole-number floats (9 -> 9.0) and a long-tail float must quantize
     ents["0a10c0de"]["Transform"]["pos"] = [9.0, 0.0, 0.0]
-    ents["3d40f30b"]["Transform"]["pos"] = [15.00001, 2.5, 0.0]
+    ents["3d40f30b"]["Transform"]["pos"] = [15.00001, 0.0, 2.5]
     # reorder components within an entity (Enemy before Damageable)
     e = ents["81a2c5e0"]
     ents["81a2c5e0"] = {
