@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { copyFileSync, mkdirSync, watch } from 'node:fs'
+import { watch } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -13,16 +13,11 @@ import { fileURLToPath } from 'node:url'
  */
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const gameJson = resolve(root, 'game.json')
-const publicDir = resolve(root, 'app/public')
+const syncScript = resolve(root, 'app/scripts/sync-json.mjs')
 
+// Reuse the same copy the app's predev/prebuild runs, so the sync lives in one place.
 const syncJson = () => {
-  try {
-    mkdirSync(publicDir, { recursive: true })
-    copyFileSync(gameJson, resolve(publicDir, 'game.json'))
-    console.log('• synced game.json -> app/public/game.json')
-  } catch (e) {
-    console.warn('  (game.json not found yet)', String(e))
-  }
+  spawnSync('node', [syncScript], { cwd: root, stdio: 'inherit' })
 }
 
 const runCodegen = () => {
