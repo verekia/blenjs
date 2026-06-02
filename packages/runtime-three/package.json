@@ -1,7 +1,7 @@
 {
   "name": "@blenjs/runtime-three",
   "version": "0.0.0",
-  "description": "BlenJS headless runtime: YAML -> validated data -> entities + UUID ref resolution. No react.",
+  "description": "BlenJS headless runtime: JSON -> validated data -> entities + UUID ref resolution. No react.",
   "type": "module",
   "main": "src/index.ts",
   "module": "src/index.ts",
@@ -13,8 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@blenjs/core": "workspace:*",
-    "yaml": "2.6.1"
+    "@blenjs/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "6.0.3",

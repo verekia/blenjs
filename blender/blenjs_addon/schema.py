@@ -25,7 +25,7 @@ from bpy.props import (
     StringProperty,
 )
 
-from . import io_yaml
+from . import io_json
 
 _ADDON = __package__.partition(".")[0]
 
@@ -35,7 +35,7 @@ NATIVE_TRANSFORM = "Transform"
 SAFE_VEC_SUBTYPES = {"XYZ", "TRANSLATION", "COLOR", "DIRECTION", "VELOCITY", "EULER", "QUATERNION", "NONE"}
 
 # Module state, populated on register.
-_schema: "io_yaml.Schema | None" = None
+_schema: "io_json.Schema | None" = None
 _component_pgs: "dict[str, type]" = {}
 _registered_classes: "list[type]" = []
 _object_attrs: "list[str]" = []
@@ -69,7 +69,7 @@ def find_schema_path() -> "str | None":
     return None
 
 
-def get_schema() -> "io_yaml.Schema | None":
+def get_schema() -> "io_json.Schema | None":
     return _schema
 
 
@@ -189,7 +189,7 @@ def register() -> None:
         _schema = None
         return
 
-    _schema = io_yaml.Schema.load(path)
+    _schema = io_json.Schema.load(path)
     print(f"[blenjs] loaded schema v{_schema.version} from {path} ({len(_schema.components)} components)")
 
     # The array-element PG must be registered before any component PG references it.

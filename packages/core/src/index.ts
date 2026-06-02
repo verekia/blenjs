@@ -16,7 +16,7 @@ export { z }
 
 /**
  * The schema-contract version. This is the real stability promise: it is embedded
- * in `components.schema.json` and in every YAML export so the runtime can detect
+ * in `components.schema.json` and in every game.json export so the runtime can detect
  * drift and migrate. Bump it whenever the *shape* of the contract changes.
  */
 export const SCHEMA_VERSION = 1
@@ -121,7 +121,7 @@ export type System = (entity: Entity, data: any, dt: number, ctx: any) => void
 // ---------------------------------------------------------------------------
 
 export type ComponentDef<S extends z.ZodObject = z.ZodObject> = {
-  /** Component name — the YAML key and the registry key. Must be unique. */
+  /** Component name — the JSON key and the registry key. Must be unique. */
   name: string
   /** Drives grouping in Blender's "Add Component" menu. */
   category: string

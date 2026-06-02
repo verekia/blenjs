@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "codegen": "bun run scripts/codegen.ts",
-    "gen:yaml": "python3 blender/tools/gen_game_yaml.py",
+    "gen:json": "python3 blender/tools/gen_game_json.py",
     "test:roundtrip": "python3 blender/tests/test_roundtrip.py",
     "watch": "bun run scripts/watch.ts",
     "dev": "bun run --filter blenjs-app dev",

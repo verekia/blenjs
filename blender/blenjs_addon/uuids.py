@@ -1,7 +1,7 @@
 """Stable UUID identity for objects (spec §6.6).
 
 Every object gets a ``blenjs_uuid`` *custom property* (an ID-property), generated
-lazily on first touch. The YAML key *is* this UUID — identity is never by name,
+lazily on first touch. The JSON key *is* this UUID — identity is never by name,
 because Blender renames objects freely.
 
 Identity MUST live in one storage namespace. We use the ID-property API

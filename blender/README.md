@@ -1,9 +1,9 @@
 # BlenJS Blender add-on
 
-Blender becomes the level editor for your R3F game. Drag a `game.yaml` into the
+Blender becomes the level editor for your R3F game. Drag a `game.json` into the
 viewport to load every scene as a Blender Scene datablock, design with normal
-Blender tools, and press **Cmd/Ctrl+S** to write canonical YAML back to the file
-you loaded. No `.blend` is ever saved — Blender is a stateless view over the YAML.
+Blender tools, and press **Cmd/Ctrl+S** to write canonical JSON back to the file
+you loaded. No `.blend` is ever saved — Blender is a stateless view over the JSON.
 
 ## Requirements
 
@@ -46,8 +46,8 @@ registry (`app/components.ts`).
 
 ## Workflow
 
-1. **Load** — drag `game.yaml` onto the 3D viewport (or File ▸ Import ▸ BlenJS
-   Game). Each YAML scene becomes a Blender Scene; switch scenes with Blender's
+1. **Load** — drag `game.json` onto the 3D viewport (or File ▸ Import ▸ BlenJS
+   Game). Each scene becomes a Blender Scene; switch scenes with Blender's
    native scene dropdown.
 2. **Design** — move/rotate/scale objects normally (that *is* the `Transform`
    component). In Object Properties ▸ **BlenJS**, use **Add Component** (grouped by
@@ -56,20 +56,20 @@ registry (`app/components.ts`).
 
    > **Coordinates** — the game and Blender share one frame: **Z-up right-handed**
    > (X right, Y depth, Z up). Position and scale are *identical* on both sides and
-   > pass through untouched; `game.yaml` is Z-up too. The one thing that still
+   > pass through untouched; `game.json` is Z-up too. The one thing that still
    > differs is the Euler *order* for the same `'XYZ'` triple (three.js `Rx·Ry·Rz`
    > vs Blender `Rz·Ry·Rx`), so rotations are reconciled through matrices, not
    > copied verbatim (see `blenjs_addon/transform.py`). On the three.js side the
    > world is rendered Z-up by setting `Object3D.DEFAULT_UP` to +Z. (glTF is Y-up by
    > spec; lift imported models into the world with a +90° rotation about X.)
-3. **Save** — **Cmd/Ctrl+S** writes canonical YAML back to the original path. Save
+3. **Save** — **Cmd/Ctrl+S** writes canonical JSON back to the original path. Save
    is rebound to the BlenJS export operator (we don't rely on `save_pre`, which
    only fires for real `.blend` saves).
 
 ### Identity
 
 Every object carries a stable `blenjs_uuid` custom property (generated lazily).
-The YAML key *is* this UUID; references serialize to UUIDs and resolve back to
+The JSON key *is* this UUID; references serialize to UUIDs and resolve back to
 objects on load. Renaming an object never breaks references.
 
 ### The “Save changes?” dialog
@@ -84,7 +84,7 @@ CI (no Blender required) — the canonicalizer is `bpy`-free and the datablock p
 runs against a faithful fake `bpy`:
 
 ```bash
-bun run test:roundtrip                          # load game.yaml -> save -> ZERO diff (+ normalization)
+bun run test:roundtrip                          # load game.json -> save -> ZERO diff (+ normalization)
 python3 blender/tests/test_blender_roundtrip.py # datablock round-trip via a fake bpy (load->datablocks->save = 0 diff)
 python3 blender/tests/test_transform.py         # Z-up Euler-order conversion: conventions + exact round-trip
 ```
@@ -99,11 +99,10 @@ python3 blender/tests/test_transform.py         # Z-up Euler-order conversion: c
 Authoritative (inside real Blender, headless):
 
 ```bash
-# ruamel.yaml must be importable by Blender's bundled python. Either install it
-# into Blender, or point BLENJS_PYLIBS at a dir that has it:
-BLENJS_PYLIBS=/path/with/ruamel \
-  blender --background --factory-startup \
-    --python blender/tests/test_in_blender.py
+# Parsing/writing uses the stdlib `json` module, so there is nothing to install
+# into Blender's bundled python — just run it:
+blender --background --factory-startup \
+  --python blender/tests/test_in_blender.py
 ```
 
 This drives the real add-on against the real `bpy`: byte-stable round-trip,

@@ -5,20 +5,19 @@ Runs the REAL add-on code against the REAL ``bpy`` inside Blender, proving the
 data path that the fake-bpy test (``test_blender_roundtrip.py``) can only
 approximate:
 
-  1. load game.yaml -> Blender datablocks -> save  ==  zero diff
+  1. load game.json -> Blender datablocks -> save  ==  zero diff
   2. entity-refs (``Patrol.waypoints``) round-trip with no phantom UUIDs
      (the regression: a UUID stored via ``obj.blenjs_uuid =`` is invisible to
      ``obj.get("blenjs_uuid")``, so ``ensure_uuid`` minted a fresh id per call
      and refs pointed at entities that never existed)
   3. re-import is idempotent — managed objects are replaced, not duplicated
 
-Run::
+The add-on parses/writes with the stdlib ``json`` module, so — unlike the old
+ruamel-based path — there is no third-party dependency to install into Blender's
+bundled python. Run::
 
-    # ruamel.yaml must be importable by Blender's bundled python. Install it into
-    # Blender, or point BLENJS_PYLIBS at a dir that contains it:
-    BLENJS_PYLIBS=/path/to/libs \\
-      blender --background --factory-startup \\
-        --python blender/tests/test_in_blender.py
+    blender --background --factory-startup \\
+      --python blender/tests/test_in_blender.py
 
 Prints ``BLENJS_INBLENDER_RESULT: PASS|FAIL`` and exits non-zero on failure.
 """
@@ -29,20 +28,16 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 
-# Let ruamel (and any other dep) load from a writable dir when it is not installed
-# into Blender's read-only bundled python.
-for _extra in filter(None, os.environ.get("BLENJS_PYLIBS", "").split(os.pathsep)):
-    sys.path.insert(0, _extra)
 sys.path.insert(0, os.path.join(ROOT, "blender"))  # the blenjs_addon package
 
 import bpy  # noqa: E402  — the real Blender module
 from bpy.props import BoolProperty, StringProperty  # noqa: E402
 
-import blenjs_addon.io_yaml as io_yaml  # noqa: E402
+import blenjs_addon.io_json as io_json  # noqa: E402
 import blenjs_addon.scenes as scenes  # noqa: E402
 import blenjs_addon.schema as schema  # noqa: E402
 
-GAME_PATH = os.path.join(ROOT, "game.yaml")
+GAME_PATH = os.path.join(ROOT, "game.json")
 
 
 def _diff(a: str, b: str) -> str:
@@ -79,7 +74,7 @@ def main() -> int:
 
     # 1) load -> datablocks -> save == zero diff
     scenes.import_game(GAME_PATH, bpy.context)
-    rebuilt = io_yaml.canonical_yaml(scenes.build_data(sch), sch)
+    rebuilt = io_json.canonical_json(scenes.build_data(sch), sch)
     if rebuilt == original:
         print("PASS: datablock round-trip is byte-stable (load -> datablocks -> save == zero diff)")
     else:

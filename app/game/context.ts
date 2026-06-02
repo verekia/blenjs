@@ -55,12 +55,12 @@ export const makeContext = (dt: number, elapsed: number): GameContext => {
 }
 
 /**
- * Load + validate a scene from a YAML string and hydrate the store. The player is
+ * Load + validate a scene from a JSON string and hydrate the store. The player is
  * spawned in code at the PlayerSpawn marker (the emergent layer, spec §4) — note
- * there is no entity carrying the Player component in game.yaml.
+ * there is no entity carrying the Player component in game.json.
  */
-export const hydrateFromYaml = (yamlText: string, sceneName = 'level1') => {
-  const game = parseGame(yamlText)
+export const hydrateFromJson = (jsonText: string, sceneName = 'level1') => {
+  const game = parseGame(jsonText)
   const { entities } = loadScene(game, sceneName, registry)
   resolveRefs(entities, registry) // throws (naming entity + field) if a ref dangles
 
@@ -91,8 +91,8 @@ export const hydrateFromYaml = (yamlText: string, sceneName = 'level1') => {
   setGame({ entities: map, order })
 }
 
-export const fetchAndHydrate = async (url = '/game.yaml', sceneName = 'level1') => {
+export const fetchAndHydrate = async (url = '/game.json', sceneName = 'level1') => {
   const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`)
-  hydrateFromYaml(await res.text(), sceneName)
+  hydrateFromJson(await res.text(), sceneName)
 }

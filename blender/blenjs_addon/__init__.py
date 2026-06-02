@@ -1,8 +1,8 @@
 """BlenJS — Blender as the level editor for R3F games.
 
-Drag a ``game.yaml`` into the viewport to load all scenes as Blender Scene
+Drag a ``game.json`` into the viewport to load all scenes as Blender Scene
 datablocks; edit components in Object Properties > BlenJS; press Cmd/Ctrl+S to
-write canonical YAML back to the original path. No ``.blend`` is ever saved.
+write canonical JSON back to the original path. No ``.blend`` is ever saved.
 """
 
 bl_info = {
@@ -10,8 +10,8 @@ bl_info = {
     "author": "BlenJS",
     "version": (0, 1, 0),
     "blender": (4, 1, 0),  # FileHandler drag-and-drop API
-    "location": "Drag game.yaml into the viewport · Object Properties > BlenJS",
-    "description": "Blender-as-editor for React Three Fiber games: load/save canonical game.yaml.",
+    "location": "Drag game.json into the viewport · Object Properties > BlenJS",
+    "description": "Blender-as-editor for React Three Fiber games: load/save canonical game.json.",
     "category": "Import-Export",
 }
 
@@ -35,7 +35,7 @@ def register() -> None:
         bpy.utils.register_class(cls)
     for cls in panels.CLASSES:
         bpy.utils.register_class(cls)
-    bpy.utils.register_class(file_handler.BLENJS_FH_yaml)
+    bpy.utils.register_class(file_handler.BLENJS_FH_json)
 
     bpy.types.TOPBAR_MT_file_import.append(operators.menu_import)
     keymap.register()
@@ -45,7 +45,7 @@ def unregister() -> None:
     keymap.unregister()
     bpy.types.TOPBAR_MT_file_import.remove(operators.menu_import)
 
-    bpy.utils.unregister_class(file_handler.BLENJS_FH_yaml)
+    bpy.utils.unregister_class(file_handler.BLENJS_FH_json)
     for cls in reversed(panels.CLASSES):
         bpy.utils.unregister_class(cls)
     for cls in reversed(operators.CLASSES):

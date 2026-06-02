@@ -9,16 +9,16 @@ from . import scenes, schema
 from .uuids import ensure_uuid
 
 
-class BLENJS_OT_import_yaml(bpy.types.Operator):
-    bl_idname = "blenjs.import_yaml"
-    bl_label = "Import BlenJS YAML"
-    bl_description = "Load all scenes from a BlenJS game.yaml"
+class BLENJS_OT_import_json(bpy.types.Operator):
+    bl_idname = "blenjs.import_json"
+    bl_label = "Import BlenJS JSON"
+    bl_description = "Load all scenes from a BlenJS game.json"
     bl_options = {"REGISTER", "UNDO"}
 
     filepath: StringProperty(subtype="FILE_PATH")
     directory: StringProperty(subtype="DIR_PATH")
     files: CollectionProperty(type=bpy.types.OperatorFileListElement)
-    filter_glob: StringProperty(default="*.yaml;*.yml", options={"HIDDEN"})
+    filter_glob: StringProperty(default="*.json", options={"HIDDEN"})
 
     def invoke(self, context, event):
         # Drag-drop (FileHandler) sets directory+files; import straight away.
@@ -45,14 +45,14 @@ class BLENJS_OT_import_yaml(bpy.types.Operator):
 
 class BLENJS_OT_export(bpy.types.Operator):
     bl_idname = "blenjs.export"
-    bl_label = "Save BlenJS YAML"
-    bl_description = "Write canonical YAML back to the file this game was loaded from"
+    bl_label = "Save BlenJS JSON"
+    bl_description = "Write canonical JSON back to the file this game was loaded from"
     bl_options = {"REGISTER"}
 
     def execute(self, context):
         path = context.window_manager.blenjs_filepath
         if not path:
-            self.report({"WARNING"}, "No game.yaml loaded — drag one into the viewport first")
+            self.report({"WARNING"}, "No game.json loaded — drag one into the viewport first")
             return {"CANCELLED"}
         try:
             scenes.export_to_path(path)
@@ -131,11 +131,11 @@ class BLENJS_OT_ref_remove(bpy.types.Operator):
 
 
 def menu_import(self, context):
-    self.layout.operator(BLENJS_OT_import_yaml.bl_idname, text="BlenJS Game (.yaml)")
+    self.layout.operator(BLENJS_OT_import_json.bl_idname, text="BlenJS Game (.json)")
 
 
 CLASSES = (
-    BLENJS_OT_import_yaml,
+    BLENJS_OT_import_json,
     BLENJS_OT_export,
     BLENJS_OT_add_component,
     BLENJS_OT_remove_component,

@@ -4,9 +4,9 @@
 Drives the REAL add-on code (schema.register, scenes.import_game,
 scenes.build_data) against a fake bpy, proving:
 
-    load game.yaml -> Blender datablocks -> save  ==  zero diff
+    load game.json -> Blender datablocks -> save  ==  zero diff
 
-This complements test_roundtrip.py (which tests only the YAML canonicalizer): it
+This complements test_roundtrip.py (which tests only the JSON canonicalizer): it
 also exercises the native-transform mapping, the dynamic PropertyGroup slots, the
 active-set, and UUID entity-ref resolution. The authoritative test is still
 running the add-on inside Blender, but this catches data-mapping regressions in CI.
@@ -24,11 +24,11 @@ import fake_bpy  # noqa: E402
 
 bpy = fake_bpy.install()
 
-import blenjs_addon.io_yaml as io_yaml  # noqa: E402
+import blenjs_addon.io_json as io_json  # noqa: E402
 import blenjs_addon.scenes as scenes  # noqa: E402
 import blenjs_addon.schema as schema  # noqa: E402
 
-GAME_PATH = os.path.join(ROOT, "game.yaml")
+GAME_PATH = os.path.join(ROOT, "game.json")
 
 OK = "\033[32m"
 FAIL = "\033[31m"
@@ -51,9 +51,9 @@ def main() -> int:
     with open(GAME_PATH, "r", encoding="utf-8") as f:
         original = f.read()
 
-    # Import the YAML into fake datablocks, then export straight back.
+    # Import the JSON into fake datablocks, then export straight back.
     scenes.import_game(GAME_PATH, bpy.context)
-    rebuilt = io_yaml.canonical_yaml(scenes.build_data(sch), sch)
+    rebuilt = io_json.canonical_json(scenes.build_data(sch), sch)
 
     failures = 0
     if rebuilt == original:

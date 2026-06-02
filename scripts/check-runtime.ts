@@ -5,14 +5,14 @@ import { loadScene, parseGame, resolveRefs, ValidationError } from '@blenjs/runt
 import { registry } from '../app/components'
 
 /**
- * Headless smoke test of the runtime-three data path against the real game.yaml.
- * Proves YAML -> Zod validation -> entities -> UUID ref resolution, and that a
+ * Headless smoke test of the runtime-three data path against the real game.json.
+ * Proves JSON -> Zod validation -> entities -> UUID ref resolution, and that a
  * malformed value reports which component on which entity failed (spec §11).
  *
  *   bun run scripts/check-runtime.ts
  */
 const here = dirname(fileURLToPath(import.meta.url))
-const yamlText = readFileSync(resolve(here, '../game.yaml'), 'utf8')
+const jsonText = readFileSync(resolve(here, '../game.json'), 'utf8')
 
 let failures = 0
 const assert = (cond: unknown, msg: string) => {
@@ -23,8 +23,8 @@ const assert = (cond: unknown, msg: string) => {
   }
 }
 
-console.log('loadScene + resolveRefs on game.yaml (level1):')
-const game = parseGame(yamlText)
+console.log('loadScene + resolveRefs on game.json (level1):')
+const game = parseGame(jsonText)
 const { entities, version } = loadScene(game, 'level1', registry)
 const { byId } = resolveRefs(entities, registry)
 
@@ -44,14 +44,16 @@ assert(!!goal, 'a Goal entity exists')
 
 // Validation: a malformed component value must name component + entity.
 console.log('validation error reporting:')
-const bad = `version: 1
-scenes:
-  level1:
-    entities:
-      deadbeef:
-        name: broken
-        Pickup: {kind: invalid_kind, value: -5}
-`
+const bad = `{
+  "version": 1,
+  "scenes": {
+    "level1": {
+      "entities": {
+        "deadbeef": {"name": "broken", "Pickup": {"kind": "invalid_kind", "value": -5}}
+      }
+    }
+  }
+}`
 try {
   loadScene(parseGame(bad), 'level1', registry)
   assert(false, 'malformed Pickup should throw')
@@ -62,14 +64,16 @@ try {
 
 // Unresolved ref must be caught.
 console.log('unresolved reference reporting:')
-const dangling = `version: 1
-scenes:
-  level1:
-    entities:
-      aaaa1111:
-        name: lonely
-        Patrol: {speed: 2, waypoints: [does_not_exist], loop: true}
-`
+const dangling = `{
+  "version": 1,
+  "scenes": {
+    "level1": {
+      "entities": {
+        "aaaa1111": {"name": "lonely", "Patrol": {"speed": 2, "waypoints": ["does_not_exist"], "loop": true}}
+      }
+    }
+  }
+}`
 try {
   const r = loadScene(parseGame(dangling), 'level1', registry)
   resolveRefs(r.entities, registry)

@@ -1,22 +1,20 @@
-import { parse } from 'yaml'
 import { getComponent, type Entity, type Registry } from '@blenjs/core'
 
 /**
- * Raw, un-validated shape of `game.yaml` as parsed by the `yaml` library.
- * The `yaml` package uses the YAML 1.2 core schema, which already sidesteps the
- * classic "Norway problem" (`no` -> false) — but loose numeric/string typing is
- * still caught when each component payload is run through its Zod schema below.
+ * Raw, un-validated shape of `game.json` as parsed by `JSON.parse`. JSON typing is
+ * strict (a number is a number, a string is a string), but each component payload
+ * is still run through its Zod schema below to validate ranges, enums, and shape.
  */
 export type RawEntity = { name?: string } & Record<string, unknown>
 export type RawScene = { entities?: Record<string, RawEntity> }
 export type RawGame = { version?: number; scenes?: Record<string, RawScene> }
 
-/** Thrown when YAML fails validation. Message names the component + entity. */
+/** Thrown when the parsed game data fails validation. Names the component + entity. */
 export class ValidationError extends Error {
   override name = 'ValidationError'
 }
 
-export const parseGame = (yamlText: string): RawGame => (parse(yamlText) as RawGame | null) ?? {}
+export const parseGame = (jsonText: string): RawGame => (JSON.parse(jsonText) as RawGame | null) ?? {}
 
 export type LoadResult = {
   version: number
@@ -35,7 +33,7 @@ export const loadScene = (game: RawGame, sceneName: string, registry: Registry):
   const version = game.version ?? 0
   if (version !== registry.version) {
     console.warn(
-      `[blenjs] game.yaml schemaVersion ${version} != registry version ${registry.version}. ` +
+      `[blenjs] game.json schemaVersion ${version} != registry version ${registry.version}. ` +
         `Data may need migration.`,
     )
   }
@@ -77,7 +75,7 @@ export const loadScene = (game: RawGame, sceneName: string, registry: Registry):
   }
 
   if (errors.length) {
-    throw new ValidationError(`Invalid game.yaml (${errors.length} problem(s)):\n - ${errors.join('\n - ')}`)
+    throw new ValidationError(`Invalid game.json (${errors.length} problem(s)):\n - ${errors.join('\n - ')}`)
   }
 
   return { version, sceneName, entities }

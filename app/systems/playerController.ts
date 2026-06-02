@@ -16,7 +16,7 @@ export type PlayerRuntime = {
 }
 
 const getRuntime = (e: Entity): PlayerRuntime => {
-  // hydrateFromYaml seeds every entity's runtime to `{}`, so `!e.runtime` was never
+  // hydrateFromJson seeds every entity's runtime to `{}`, so `!e.runtime` was never
   // true — the old guard left vx/vz/… undefined, and `rt.vz += GRAVITY*dt` turned
   // the player position into NaN (which propagated to the follow camera and blanked
   // the whole render). Seed each field defensively, like patrol/shoot already do.
