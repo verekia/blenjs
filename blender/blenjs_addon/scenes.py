@@ -1,11 +1,11 @@
-"""YAML scenes <-> Blender Scene datablocks (spec §6.1, §6.5, §6.6, §6.8).
+"""JSON scenes <-> Blender Scene datablocks (spec §6.1, §6.5, §6.6, §6.8).
 
-Import: load YAML, create one Blender Scene per YAML scene (the native scene
+Import: load JSON, create one Blender Scene per game scene (the native scene
 dropdown becomes the switcher), create an object per entity, stamp UUIDs, fill
 component PropertyGroups, and resolve entity-ref pointers in a second pass.
 
 Export: walk managed scenes/objects, read the native transform + active
-components into a plain data dict, and hand it to ``io_yaml.canonical_yaml``.
+components into a plain data dict, and hand it to ``io_json.canonical_json``.
 """
 
 import os
@@ -13,7 +13,7 @@ import os
 import bmesh
 import bpy
 
-from . import io_yaml, schema, transform
+from . import io_json, schema, transform
 from .uuids import ensure_uuid
 
 UNIT_CUBE = "BLENJS_UnitCube"
@@ -45,7 +45,7 @@ def _ref_fields(component: dict):
 # --------------------------------------------------------------------------- #
 # Import
 # --------------------------------------------------------------------------- #
-def _create_object(uuid: str, ent: dict, scene, sch: "io_yaml.Schema"):
+def _create_object(uuid: str, ent: dict, scene, sch: "io_json.Schema"):
     name = ent.get("name", uuid)
     obj = bpy.data.objects.new(name, _unit_cube_mesh() if "Collider" in ent else None)
     if obj.data is None:  # empty
@@ -96,7 +96,7 @@ def _apply_scalars(pg, component: dict, data: dict):
             print(f"[blenjs] could not set {component['name']}.{name} = {value!r}: {e}")
 
 
-def _apply_refs(obj, ent: dict, uuid_to_obj: dict, sch: "io_yaml.Schema"):
+def _apply_refs(obj, ent: dict, uuid_to_obj: dict, sch: "io_json.Schema"):
     for comp_name, comp_data in ent.items():
         if comp_name in ("name", "Transform") or not sch.has(comp_name):
             continue
@@ -132,7 +132,7 @@ def import_game(filepath: str, context) -> str:
     if sch is None:
         raise RuntimeError("BlenJS schema not loaded — set the schema path in add-on preferences.")
 
-    data = io_yaml.load_file(filepath)
+    data = io_json.load_file(filepath)
     wm = getattr(context, "window_manager", None)
     if wm is not None:  # absent under --background; harmless to skip the Cmd/Ctrl+S stash
         wm.blenjs_filepath = os.path.abspath(filepath)
@@ -189,7 +189,7 @@ def _read_component(obj, component: dict) -> dict:
     return out
 
 
-def build_data(sch: "io_yaml.Schema") -> dict:
+def build_data(sch: "io_json.Schema") -> dict:
     scenes_out = {}
     for sc in bpy.data.scenes:
         if not getattr(sc, "blenjs_managed", False):
@@ -219,7 +219,7 @@ def export_to_path(filepath: str) -> str:
     sch = schema.get_schema()
     if sch is None:
         raise RuntimeError("BlenJS schema not loaded — set the schema path in add-on preferences.")
-    text = io_yaml.canonical_yaml(build_data(sch), sch)
+    text = io_json.canonical_json(build_data(sch), sch)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(text)
     return filepath

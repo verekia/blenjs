@@ -7,7 +7,7 @@ import type { PlayerRuntime } from './playerController'
 
 /**
  * The shoot feature is the "emergent layer is code" example (spec §4, §7.6):
- * bullets are spawned at runtime, not authored in YAML. `shootStep` fires from the
+ * bullets are spawned at runtime, not authored in JSON. `shootStep` fires from the
  * player; `bulletStep` advances bullets and damages `Damageable` entities on
  * contact. Both run as runtime systems (not attached to a registry component).
  */

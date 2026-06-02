@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Generate the canonical root ``game.yaml`` for the example platformer.
+"""Generate the canonical root ``game.json`` for the example platformer.
 
-Authoring the file *through the canonicalizer* guarantees the committed YAML is
+Authoring the file *through the canonicalizer* guarantees the committed JSON is
 already in canonical form, so the Blender no-op round-trip is a zero diff by
 construction. Run with::
 
-    python3 blender/tools/gen_game_yaml.py
-    # or: bun run gen:yaml
+    python3 blender/tools/gen_game_json.py
+    # or: bun run gen:json
 """
 
 import os
@@ -15,12 +15,12 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ADDON = os.path.abspath(os.path.join(HERE, "..", "blenjs_addon"))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-sys.path.insert(0, ADDON)  # import io_yaml directly, bypassing the bpy-laden package __init__
+sys.path.insert(0, ADDON)  # import io_json directly, bypassing the bpy-laden package __init__
 
-import io_yaml  # noqa: E402
+import io_json  # noqa: E402
 
 SCHEMA_PATH = os.path.join(ROOT, "generated", "components.schema.json")
-OUT_PATH = os.path.join(ROOT, "game.yaml")
+OUT_PATH = os.path.join(ROOT, "game.json")
 
 
 def transform(pos, scale=None):
@@ -80,8 +80,8 @@ DATA = {
 
 
 def main():
-    schema = io_yaml.Schema.load(SCHEMA_PATH)
-    text = io_yaml.canonical_yaml(DATA, schema)
+    schema = io_json.Schema.load(SCHEMA_PATH)
+    text = io_json.canonical_json(DATA, schema)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         f.write(text)
     print(f"✓ wrote {OUT_PATH} ({len(text)} bytes, {len(LEVEL1)} entities in level1)")

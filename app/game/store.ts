@@ -10,9 +10,9 @@ import type { Bullet, Input } from './types'
  * frame in useFrame); React re-renders only when collections (entities/bullets)
  * are replaced.
  *
- * `entities` is the designed world (hydrated from YAML) PLUS the runtime-spawned
+ * `entities` is the designed world (hydrated from JSON) PLUS the runtime-spawned
  * player. `bullets`, `score`, `ammo`, `win`/`lose` are the emergent layer — code,
- * never authored in YAML (spec §4).
+ * never authored in JSON (spec §4).
  */
 export type GameState = {
   entities: Record<string, Entity>

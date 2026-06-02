@@ -100,7 +100,7 @@ def _vec3(v, default):
 # Public API
 # --------------------------------------------------------------------------- #
 def game_to_blender(pos, rot, scale):
-    """YAML (Z-up, three.js euler) -> Blender (Z-up, Blender euler).
+    """Game JSON (Z-up, three.js euler) -> Blender (Z-up, Blender euler).
 
     Both frames are Z-up, so position and scale are identical; only the Euler
     order is reconciled (three.js Rx·Ry·Rz -> Blender Rz·Ry·Rx).
@@ -112,7 +112,7 @@ def game_to_blender(pos, rot, scale):
 
 
 def blender_to_game(pos, rot, scale):
-    """Blender (Z-up, Blender euler) -> YAML (Z-up, three.js euler)."""
+    """Blender (Z-up, Blender euler) -> game JSON (Z-up, three.js euler)."""
     pos = _vec3(pos, (0.0, 0.0, 0.0))
     rot = _vec3(rot, (0.0, 0.0, 0.0))
     scale = _vec3(scale, (1.0, 1.0, 1.0))

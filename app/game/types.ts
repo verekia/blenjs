@@ -7,7 +7,7 @@ export type Input = {
   shoot: boolean
 }
 
-/** A runtime-spawned bullet — emergent state, never authored in YAML. */
+/** A runtime-spawned bullet — emergent state, never authored in JSON. */
 export type Bullet = {
   id: number
   pos: Vec3
