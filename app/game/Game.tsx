@@ -1,9 +1,11 @@
 import { Level } from '@blenjs/runtime-r3f'
+import type { RawGame } from '@blenjs/runtime-three'
 import { Canvas } from '@react-three/fiber/webgpu'
 import { useCallback, useEffect, useState } from 'react'
 import { Object3D } from 'three'
+import gameData from '../../game.json'
 import { Bullets } from './Bullets'
-import { fetchAndHydrate, hydrateFromJson } from './context'
+import { hydrateGame } from './context'
 import { HUD } from './HUD'
 import { useInput } from './input'
 import { renderEntity } from './Level'
@@ -35,33 +37,23 @@ export const Game = () => {
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // game.json is imported as a module, so it's bundled (no runtime fetch) and the
+  // dev loop is just Fast Refresh: editing game.json — or saving from Blender —
+  // re-evaluates this module with a fresh `gameData`. Keying `load` on it rebuilds
+  // the callback, which re-fires the effect below and reloads the level.
   const load = useCallback(() => {
-    setReady(false)
-    setError(null)
-    fetchAndHydrate('/game.json')
-      .then(() => setReady(true))
-      .catch(e => setError(String(e?.message ?? e)))
-  }, [])
+    try {
+      hydrateGame(gameData as RawGame)
+      setError(null)
+      setReady(true)
+    } catch (e) {
+      setReady(false)
+      setError(String((e as { message?: string })?.message ?? e))
+    }
+  }, [gameData])
 
   useEffect(() => load(), [load])
   useInput(load) // R restarts by reloading the scene
-
-  // Dev loop (spec §7 / §10.7): poll the synced JSON so "save in Blender ->
-  // game reloads" works. The watcher copies game.json into public on change.
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return
-    let last: string | null = null
-    const id = setInterval(async () => {
-      try {
-        const text = await (await fetch('/game.json', { cache: 'no-store' })).text()
-        if (last !== null && text !== last) hydrateFromJson(text)
-        last = text
-      } catch {
-        // ignore transient fetch errors during dev
-      }
-    }, 1500)
-    return () => clearInterval(id)
-  }, [])
 
   return (
     <>

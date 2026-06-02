@@ -1,5 +1,5 @@
 import type { Entity, Vec3 } from '@blenjs/core'
-import { loadScene, parseGame, resolveRefs } from '@blenjs/runtime-three'
+import { loadScene, type RawGame, resolveRefs } from '@blenjs/runtime-three'
 import { Player, registry } from '../components'
 import { BULLET_SPEED, BULLET_TTL } from './constants'
 import { getGame, resetGame, setGame } from './store'
@@ -55,12 +55,13 @@ export const makeContext = (dt: number, elapsed: number): GameContext => {
 }
 
 /**
- * Load + validate a scene from a JSON string and hydrate the store. The player is
- * spawned in code at the PlayerSpawn marker (the emergent layer, spec §4) — note
- * there is no entity carrying the Player component in game.json.
+ * Load + validate a scene from the (already-parsed) game data and hydrate the
+ * store. `game.json` is imported as a module, so the bundler hands us a parsed
+ * object — no fetch, and editing the file triggers HMR. The player is spawned in
+ * code at the PlayerSpawn marker (the emergent layer, spec §4) — note there is no
+ * entity carrying the Player component in game.json.
  */
-export const hydrateFromJson = (jsonText: string, sceneName = 'level1') => {
-  const game = parseGame(jsonText)
+export const hydrateGame = (game: RawGame, sceneName = 'level1') => {
   const { entities } = loadScene(game, sceneName, registry)
   resolveRefs(entities, registry) // throws (naming entity + field) if a ref dangles
 
@@ -89,10 +90,4 @@ export const hydrateFromJson = (jsonText: string, sceneName = 'level1') => {
 
   resetGame()
   setGame({ entities: map, order })
-}
-
-export const fetchAndHydrate = async (url = '/game.json', sceneName = 'level1') => {
-  const res = await fetch(url, { cache: 'no-store' })
-  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`)
-  hydrateFromJson(await res.text(), sceneName)
 }

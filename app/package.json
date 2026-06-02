@@ -4,9 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/sync-json.mjs",
     "dev": "portless blenjs-app next dev",
-    "prebuild": "node scripts/sync-json.mjs",
     "build": "next build",
     "start": "serve out",
     "typecheck": "next typegen && tsc --noEmit"
