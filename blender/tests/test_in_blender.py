@@ -12,9 +12,8 @@ approximate:
      and refs pointed at entities that never existed)
   3. re-import is idempotent — managed objects are replaced, not duplicated
 
-The add-on parses/writes with the stdlib ``json`` module, so — unlike the old
-ruamel-based path — there is no third-party dependency to install into Blender's
-bundled python. Run::
+The add-on parses/writes with the stdlib ``json`` module, so there is no
+third-party dependency to install into Blender's bundled python. Run::
 
     blender --background --factory-startup \\
       --python blender/tests/test_in_blender.py

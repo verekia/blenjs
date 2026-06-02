@@ -28,6 +28,7 @@ party dependency, which is the whole point of moving off YAML.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 QUANT_DIGITS = 4
@@ -171,8 +172,6 @@ def _entity(uuid: str, ent: dict[str, Any], schema: Schema) -> dict[str, Any]:
 
 
 def _natkey(s: str) -> list[Any]:
-    import re
-
     return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", str(s))]
 
 
@@ -202,6 +201,10 @@ def _is_scalar(x: Any) -> bool:
     return isinstance(x, (str, int, float, bool)) or x is None
 
 
+def _is_scalar_list(x: Any) -> bool:
+    return isinstance(x, list) and all(_is_scalar(i) for i in x)
+
+
 def _inlinable(v: Any) -> bool:
     """A container is a *leaf* (kept on one line) only if it has no nested container.
 
@@ -215,10 +218,6 @@ def _inlinable(v: Any) -> bool:
     if isinstance(v, list):
         return all(_is_scalar(x) for x in v)
     return True
-
-
-def _is_scalar_list(x: Any) -> bool:
-    return isinstance(x, list) and all(_is_scalar(i) for i in x)
 
 
 def _inline(v: Any) -> str:
