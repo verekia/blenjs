@@ -6,22 +6,26 @@
         "0a10c0de": {
           "name": "ground",
           "Transform": {"pos": [9, 0, 0], "rot": [0, 0, 0], "scale": [24, 4, 1]},
-          "Collider": {"shape": "box"}
+          "Collider": {"shape": "box"},
+          "Material": {"color": [0.2235, 0.2588, 0.3098], "opacity": 1, "unlit": true}
         },
         "1b20d1ef": {
           "name": "platform_a",
           "Transform": {"pos": [5, 0, 2], "rot": [0, 0, 0], "scale": [3, 3, 0.5]},
-          "Collider": {"shape": "box"}
+          "Collider": {"shape": "box"},
+          "Material": {"color": [0.2235, 0.2588, 0.3098], "opacity": 1, "unlit": true}
         },
         "2c30e2fa": {
           "name": "platform_b",
           "Transform": {"pos": [10, 0, 3.5], "rot": [0, 0, 0], "scale": [3, 3, 0.5]},
-          "Collider": {"shape": "box"}
+          "Collider": {"shape": "box"},
+          "Material": {"color": [0.2235, 0.2588, 0.3098], "opacity": 1, "unlit": true}
         },
         "3d40f30b": {
           "name": "platform_c",
           "Transform": {"pos": [15, 0, 2.5], "rot": [0, 0, 0], "scale": [3, 3, 0.5]},
-          "Collider": {"shape": "box"}
+          "Collider": {"shape": "box"},
+          "Material": {"color": [0.2235, 0.2588, 0.3098], "opacity": 1, "unlit": true}
         },
         "4e5101ac": {
           "name": "gem_01",
@@ -79,89 +83,147 @@
         "f01a2cd7": {
           "name": "goal",
           "Transform": {"pos": [19, 0, 1], "rot": [0, 0, 0], "scale": [1, 1, 1]},
-          "Goal": {}
+          "Goal": {},
+          "Material": {"color": [0.851, 0.2745, 0.9373], "opacity": 1, "unlit": true}
+        },
+        "fa000001": {
+          "name": "ambient_light",
+          "Transform": {"pos": [0, 0, 0], "rot": [0, 0, 0], "scale": [1, 1, 1]},
+          "Light": {"type": "ambient", "color": [1, 1, 1], "intensity": 0.9}
+        },
+        "fb000002": {
+          "name": "sun",
+          "Transform": {"pos": [2, -6, 10], "rot": [0.6, -0.4, 0], "scale": [1, 1, 1]},
+          "Light": {"type": "directional", "color": [1, 1, 1], "intensity": 2}
+        },
+        "fc000003": {
+          "name": "camera",
+          "Transform": {"pos": [0, -16, 3], "rot": [1.5708, 0, 0], "scale": [1, 1, 1]},
+          "Camera": {"projection": "orthographic", "zoom": 48, "fov": 50, "near": 0.1, "far": 1000}
+        },
+        "fd000004": {
+          "name": "kill_zone",
+          "Transform": {"pos": [9, 0, -18], "rot": [0, 0, 0], "scale": [64, 24, 10]},
+          "Trigger": {"on": "enter", "action": "lose", "targets": [], "once": true}
+        },
+        "fe000005": {
+          "name": "enemy_rune",
+          "Transform": {"pos": [12, 0, 0.55], "rot": [0, 0, 0], "scale": [2, 4, 0.3]},
+          "Material": {"color": [0.13, 0.83, 0.93], "opacity": 0.35, "unlit": true},
+          "Trigger": {"on": "enter", "action": "remove", "targets": ["81a2c5e0", "b1d2e8f3"], "once": true}
         }
       }
     },
     "level2": {
       "entities": {
         "201a0001": {
-          "name": "ground_start",
+          "name": "l2_ground_start",
           "Transform": {"pos": [3, 0, 0], "rot": [0, 0, 0], "scale": [12, 4, 1]},
-          "Collider": {"shape": "box"}
+          "Collider": {"shape": "box"},
+          "Material": {"color": [0.2235, 0.2588, 0.3098], "opacity": 1, "unlit": true}
         },
         "201a0002": {
-          "name": "ground_mid",
+          "name": "l2_ground_mid",
           "Transform": {"pos": [15, 0, 0], "rot": [0, 0, 0], "scale": [8, 4, 1]},
-          "Collider": {"shape": "box"}
+          "Collider": {"shape": "box"},
+          "Material": {"color": [0.2235, 0.2588, 0.3098], "opacity": 1, "unlit": true}
         },
         "201a0003": {
-          "name": "step_1",
+          "name": "l2_step_1",
           "Transform": {"pos": [17, 0, 1.4], "rot": [0, 0, 0], "scale": [3, 3, 0.5]},
-          "Collider": {"shape": "box"}
+          "Collider": {"shape": "box"},
+          "Material": {"color": [0.2235, 0.2588, 0.3098], "opacity": 1, "unlit": true}
         },
         "201a0004": {
-          "name": "step_2",
+          "name": "l2_step_2",
           "Transform": {"pos": [20, 0, 2.8], "rot": [0, 0, 0], "scale": [3, 3, 0.5]},
-          "Collider": {"shape": "box"}
+          "Collider": {"shape": "box"},
+          "Material": {"color": [0.2235, 0.2588, 0.3098], "opacity": 1, "unlit": true}
         },
         "201a0005": {
-          "name": "spawn",
+          "name": "l2_spawn",
           "Transform": {"pos": [0, 0, 1.5], "rot": [0, 0, 0], "scale": [1, 1, 1]},
           "PlayerSpawn": {}
         },
         "201a0006": {
-          "name": "goal",
+          "name": "l2_goal",
           "Transform": {"pos": [20, 0, 3.5], "rot": [0, 0, 0], "scale": [1, 1, 1]},
-          "Goal": {}
+          "Goal": {},
+          "Material": {"color": [0.851, 0.2745, 0.9373], "opacity": 1, "unlit": true}
         },
         "201a0007": {
-          "name": "coin_01",
+          "name": "l2_coin_01",
           "prefab": "coin",
           "Transform": {"pos": [3, 0, 1.6]}
         },
         "201a0008": {
-          "name": "coin_02",
+          "name": "l2_coin_02",
           "prefab": "coin",
           "Transform": {"pos": [13, 0, 1.6]}
         },
         "201a0009": {
-          "name": "coin_03",
+          "name": "l2_coin_03",
           "prefab": "coin",
           "Transform": {"pos": [17, 0, 2.4]}
         },
         "201a000a": {
-          "name": "gem_01",
+          "name": "l2_gem_01",
           "prefab": "pickup",
           "Transform": {"pos": [6, 0, 1.4]}
         },
         "201a000b": {
-          "name": "enemy_01",
+          "name": "l2_enemy_01",
           "prefab": "enemy",
           "Transform": {"pos": [5, 0, 0.9]},
           "Patrol": {"speed": 2.5, "waypoints": ["201a000c", "201a000d"]}
         },
         "201a000c": {
-          "name": "wp_a1",
+          "name": "l2_wp_a1",
           "Transform": {"pos": [1, 0, 0.9], "rot": [0, 0, 0], "scale": [1, 1, 1]}
         },
         "201a000d": {
-          "name": "wp_a2",
+          "name": "l2_wp_a2",
           "Transform": {"pos": [8, 0, 0.9], "rot": [0, 0, 0], "scale": [1, 1, 1]}
         },
         "201a000e": {
-          "name": "enemy_02",
+          "name": "l2_enemy_02",
           "prefab": "enemy",
           "Transform": {"pos": [14, 0, 0.9]},
-          "Patrol": {"speed": 2, "waypoints": ["201a000f", "201a0010"]}
+          "Patrol": {"waypoints": ["201a000f", "201a0010"]}
         },
         "201a000f": {
-          "name": "wp_b1",
+          "name": "l2_wp_b1",
           "Transform": {"pos": [11.5, 0, 0.9], "rot": [0, 0, 0], "scale": [1, 1, 1]}
         },
         "201a0010": {
-          "name": "wp_b2",
+          "name": "l2_wp_b2",
           "Transform": {"pos": [18, 0, 0.9], "rot": [0, 0, 0], "scale": [1, 1, 1]}
+        },
+        "201a00f1": {
+          "name": "l2_ambient_light",
+          "Transform": {"pos": [0, 0, 0], "rot": [0, 0, 0], "scale": [1, 1, 1]},
+          "Light": {"type": "ambient", "color": [1, 1, 1], "intensity": 0.9}
+        },
+        "201a00f2": {
+          "name": "l2_sun",
+          "Transform": {"pos": [2, -6, 10], "rot": [0.6, -0.4, 0], "scale": [1, 1, 1]},
+          "Light": {"type": "directional", "color": [1, 1, 1], "intensity": 2}
+        },
+        "201a00f3": {
+          "name": "l2_camera",
+          "Transform": {"pos": [0, -16, 3], "rot": [1.5708, 0, 0], "scale": [1, 1, 1]},
+          "Camera": {"projection": "orthographic", "zoom": 48, "fov": 50, "near": 0.1, "far": 1000}
+        },
+        "201a00f4": {
+          "name": "l2_kill_zone",
+          "Transform": {"pos": [11, 0, -18], "rot": [0, 0, 0], "scale": [64, 24, 10]},
+          "Trigger": {"on": "enter", "action": "lose", "targets": [], "once": true}
+        },
+        "201a00f5": {
+          "name": "l2_enemy_rune",
+          "Transform": {"pos": [10, 0, 0.55], "rot": [0, 0, 0], "scale": [2, 4, 0.3]},
+          "Material": {"color": [0.13, 0.83, 0.93], "opacity": 0.35, "unlit": true},
+          "Trigger": {"on": "enter", "action": "remove", "targets": ["201a000b", "201a000e"], "once": true}
         }
       }
     }

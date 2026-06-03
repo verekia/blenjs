@@ -22,6 +22,7 @@ Export: walk managed scenes/objects, read the native transform + active componen
 into a plain data dict, and hand it to ``io_json.canonical_json``.
 """
 
+import math
 import os
 
 import bmesh
@@ -147,6 +148,114 @@ def _clear_holder(obj) -> None:
     obj.empty_display_size = 0.4
 
 
+# --------------------------------------------------------------------------- #
+# Native light / camera / world (so the viewport frames + lights like the game)
+# --------------------------------------------------------------------------- #
+# These mirror the ``Light`` and ``Camera`` components onto REAL Blender datablocks — a Sun
+# lamp, a Camera object, and the scene World — instead of leaving a bare empty. The component
+# PropertyGroups remain the source of truth for export (unchanged round-trip); the datablocks
+# are driven *from* those values on import, purely for viewport fidelity. Creation is
+# best-effort: under the fake ``bpy`` (headless tests) the data API is absent, so it returns
+# ``None`` and the caller falls back to an empty with the data path intact.
+def _camera_or_light_data(name: str, ent: dict):
+    """Native object data for a Camera or *directional* Light entity, else ``None``. Ambient
+    lights drive the World (not an object), so they return ``None`` and stay empties."""
+    cam = ent.get("Camera")
+    if isinstance(cam, dict):
+        return _make_camera_data(name, cam)
+    light = ent.get("Light")
+    if isinstance(light, dict) and light.get("type") == "directional":
+        return _make_sun_data(name, light)
+    return None
+
+
+def _make_camera_data(name: str, cam: dict):
+    cams = getattr(bpy.data, "cameras", None)
+    if cams is None:
+        return None
+    try:
+        data = cams.new(name)
+        if (cam.get("projection") or "orthographic") == "orthographic":
+            data.type = "ORTHO"
+            zoom = float(cam.get("zoom") or 48)
+            # Approximate three.js ortho zoom (px per world unit) as world-units-across; the
+            # exact framing depends on the canvas pixel size, which Blender cannot know here.
+            data.ortho_scale = max(1.0, 960.0 / zoom)
+        else:
+            data.type = "PERSP"
+            data.angle = math.radians(float(cam.get("fov") or 50))
+        data.clip_start = float(cam.get("near") or 0.1)
+        data.clip_end = float(cam.get("far") or 1000)
+        return data
+    except Exception as e:  # noqa: BLE001 — visualization is best-effort
+        print(f"[blenjs] could not create camera '{name}': {e}")
+        return None
+
+
+def _make_sun_data(name: str, light: dict):
+    lights = getattr(bpy.data, "lights", None)
+    if lights is None:
+        return None
+    try:
+        data = lights.new(name, type="SUN")  # a Sun emits along its local -Z (the object rotation)
+        col = light.get("color")
+        if isinstance(col, (list, tuple)) and len(col) >= 3:
+            data.color = (float(col[0]), float(col[1]), float(col[2]))
+        data.energy = float(light.get("intensity") or 1)
+        return data
+    except Exception as e:  # noqa: BLE001
+        print(f"[blenjs] could not create sun '{name}': {e}")
+        return None
+
+
+def _apply_world(scene, light: dict) -> None:
+    """Drive the scene's World (Blender's ambient fill) from an ambient Light. Best-effort; a
+    World is created once per scene and then reused, so re-import does not pile up datablocks."""
+    worlds = getattr(bpy.data, "worlds", None)
+    if worlds is None:
+        return
+    try:
+        world = scene.world or worlds.new(f"BLENJS_World_{scene.name}")
+        scene.world = world
+        world.use_nodes = True
+        col = light.get("color") or [1.0, 1.0, 1.0]
+        bg = world.node_tree.nodes.get("Background")
+        if bg is not None:
+            bg.inputs[0].default_value = (float(col[0]), float(col[1]), float(col[2]), 1.0)
+            bg.inputs[1].default_value = float(light.get("intensity") or 1)
+    except Exception as e:  # noqa: BLE001
+        print(f"[blenjs] could not set world ambient on scene '{scene.name}': {e}")
+
+
+def _apply_view_datablocks(obj, ent: dict, scene) -> None:
+    """Real-datablock side effects after the object exists: make a Camera the scene's active
+    camera, and let an ambient Light drive the World. Both best-effort (no-ops under fake bpy)."""
+    if isinstance(ent.get("Camera"), dict):
+        try:
+            scene.camera = obj
+        except Exception as e:  # noqa: BLE001
+            print(f"[blenjs] could not set active scene camera: {e}")
+    light = ent.get("Light")
+    if isinstance(light, dict) and light.get("type") == "ambient":
+        _apply_world(scene, light)
+
+
+def _remove_data(data) -> None:
+    """Remove an orphan object data-block (mesh / light / camera) by locating its collection.
+    Keeps the shared unit cube; no-op when the data-block is unknown or still referenced."""
+    if data is None or getattr(data, "name", "") == UNIT_CUBE or getattr(data, "users", 0) != 0:
+        return
+    for coll in (getattr(bpy.data, "meshes", None), getattr(bpy.data, "lights", None), getattr(bpy.data, "cameras", None)):
+        if coll is None:
+            continue
+        try:
+            if any(d is data for d in coll):
+                coll.remove(data)
+                return
+        except Exception:  # noqa: BLE001 — collection not iterable under fake bpy; try the next
+            continue
+
+
 def _ref_fields(component: dict):
     """(single_ref_fields, array_ref_fields) for a component."""
     singles, arrays = [], []
@@ -175,18 +284,31 @@ def _create_object(uuid: str, ent: dict, scene, sch: "io_json.Schema", prefab_na
     ``prefab_name`` is set for prefab instances so export can re-sparsify."""
     name = ent.get("name", uuid)
 
-    # Geometry: a Model asset (prefab or single-use) renders as a linked-collection INSTANCE
-    # (the .blend is referenced, not copied) > a Collider's unit cube > an empty marker.
+    # Object data-block, in priority order: a Model asset renders as a linked-collection
+    # INSTANCE (.blend referenced, not copied); a Camera / directional Light becomes a REAL
+    # Blender camera / sun (so the viewport frames + lights like the game); a Collider gets the
+    # unit cube; everything else is an empty marker. Native camera/sun creation is best-effort —
+    # under the fake bpy it returns None and we fall back to an empty, data path intact.
     src = _model_src(ent)
     holder = _holder_for(src) if src else None
-    mesh = _unit_cube_mesh() if holder is None and "Collider" in ent else None
+    data = None
+    if holder is None:
+        data = _camera_or_light_data(name, ent)
+    if data is None and holder is None and "Collider" in ent:
+        data = _unit_cube_mesh()
 
-    obj = bpy.data.objects.new(name, mesh)
+    obj = bpy.data.objects.new(name, data)
     if holder is not None:  # instance the linked source — geometry stays in the .blend
         _apply_holder(obj, holder)
-    elif obj.data is None:  # empty (marker / model unavailable)
-        obj.empty_display_type = "PLAIN_AXES"
-        obj.empty_display_size = 0.4
+    elif obj.data is None:  # empty (marker / native datablock unavailable / trigger volume)
+        if isinstance(ent.get("Trigger"), dict):
+            # A unit cube empty (half-extent 0.5) times the object scale draws exactly the
+            # trigger volume (Transform.scale = full extents), so the zone is visible in Blender.
+            obj.empty_display_type = "CUBE"
+            obj.empty_display_size = 0.5
+        else:
+            obj.empty_display_type = "PLAIN_AXES"
+            obj.empty_display_size = 0.4
     scene.collection.objects.link(obj)
     obj["blenjs_uuid"] = uuid  # ID-property — the one namespace ensure_uuid reads (see uuids.py)
     if prefab_name:
@@ -208,6 +330,9 @@ def _create_object(uuid: str, ent: dict, scene, sch: "io_json.Schema", prefab_na
         setattr(obj, schema.component_active_name(comp_name), True)
         pg = getattr(obj, schema.component_pg_name(comp_name))
         _apply_scalars(pg, sch.components[comp_name], comp_data or {})
+
+    # Real-datablock side effects (active scene camera, ambient → World). Best-effort.
+    _apply_view_datablocks(obj, ent, scene)
     return obj
 
 
@@ -272,10 +397,10 @@ def _clear_managed(scene):
         if obj.get("blenjs_uuid"):
             data = obj.data
             bpy.data.objects.remove(obj, do_unlink=True)
-            # remove orphan mesh (the shared unit cube is kept). Model entities are instance
-            # empties (no mesh); linked source geometry is purged via _purge_holders_and_libs.
-            if data is not None and data.name != UNIT_CUBE and data.users == 0:
-                bpy.data.meshes.remove(data)
+            # remove the orphan data-block (mesh / sun / camera; the shared unit cube is kept).
+            # Model entities are instance empties (no data); linked source geometry is purged via
+            # _purge_holders_and_libs.
+            _remove_data(data)
 
 
 def import_game(filepath: str, context) -> str:

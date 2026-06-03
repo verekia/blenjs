@@ -39,7 +39,7 @@ const { entities, version } = loadScene(resolvePrefabs(game, 'level1', prefabs),
 const { byId } = resolveRefs(entities, registry)
 
 assert(version === registry.version, `schemaVersion ${version} matches registry`)
-assert(entities.length === 16, `loaded 16 entities (got ${entities.length})`)
+assert(entities.length === 21, `loaded 21 entities (got ${entities.length})`)
 
 const enemy = entities.find(e => e.name === 'enemy_01')
 const patrolData = enemy?.components.Patrol as { waypoints: string[] } | undefined
@@ -51,6 +51,40 @@ const spawn = entities.find(e => e.components.PlayerSpawn)
 assert(!!spawn, 'a PlayerSpawn entity exists')
 const goal = entities.find(e => e.components.Goal)
 assert(!!goal, 'a Goal entity exists')
+
+// Authored art outputs (TODO.md Tier 1): lights, camera, and material colours are data.
+console.log('authored lights / camera / material:')
+const lights = entities.filter(e => e.components.Light)
+assert(lights.length === 2, `level1 authors 2 lights (got ${lights.length})`)
+assert(
+  lights.some(e => (e.components.Light as { type?: string }).type === 'ambient') &&
+    lights.some(e => (e.components.Light as { type?: string }).type === 'directional'),
+  'an ambient + a directional light are authored',
+)
+const camera = entities.find(e => e.components.Camera)
+assert(
+  (camera?.components.Camera as { zoom?: number } | undefined)?.zoom === 48,
+  'a Camera entity is authored (zoom=48)',
+)
+const groundMat = entities.find(e => e.name === 'ground')?.components.Material as { color?: number[] } | undefined
+assert(Array.isArray(groundMat?.color) && groundMat?.color?.length === 3, 'ground carries an authored Material colour')
+
+// Event wiring (TODO.md Tier 2): a kill-volume Trigger replaces the old FALL_KILL_Z constant,
+// and a "rune" Trigger removes target enemies — the entityRef wiring resolves to real entities.
+console.log('event wiring (triggers):')
+const triggers = entities.filter(e => e.components.Trigger)
+assert(triggers.length === 2, `level1 authors 2 triggers (got ${triggers.length})`)
+assert(
+  triggers.some(e => (e.components.Trigger as { action?: string }).action === 'lose'),
+  'a kill-volume trigger (action=lose) replaces the hardcoded fall plane',
+)
+const rune = entities.find(e => e.name === 'enemy_rune')?.components.Trigger as
+  | { action?: string; targets?: string[] }
+  | undefined
+assert(
+  rune?.action === 'remove' && (rune?.targets?.length ?? 0) === 2 && (rune?.targets ?? []).every(t => byId.has(t)),
+  'enemy_rune removes 2 real target entities (trigger → targets wiring resolves)',
+)
 
 // Prefab resolution: a coin instance inherits its model + Pickup data from the prefab.
 console.log('prefab resolution:')

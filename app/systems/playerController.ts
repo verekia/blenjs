@@ -1,5 +1,5 @@
 import type { Entity, Vec3 } from '@blenjs/core'
-import { GRAVITY, PLAYER_HALF, FALL_KILL_Z } from '../game/constants'
+import { GRAVITY, PLAYER_HALF } from '../game/constants'
 import { aabbFromCenter, colliderAABB, overlap } from '../game/physics'
 import type { GameContext } from '../game/types'
 import { faceMovement } from './face'
@@ -85,5 +85,6 @@ export const playerController = (e: Entity, data: PlayerData, dt: number, ctx: G
   pos[2] += rt.vz * dt
   resolveAxis(pos, 2, rt, ctx)
 
-  if (pos[2] < FALL_KILL_Z) ctx.setLose()
+  // Falling off the level is no longer a hardcoded Z threshold — an authored kill-volume
+  // Trigger (action: 'lose', placed below the level in Blender) handles it. See systems/trigger.
 }

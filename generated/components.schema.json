@@ -197,6 +197,310 @@
       "tooltip": "3D model referenced by name. Blender links prefabs/<src>.blend; the runtime loads the built /assets/<src>.glb."
     },
     {
+      "name": "Light",
+      "category": "Rendering",
+      "hasSystem": false,
+      "fields": [
+        {
+          "name": "type",
+          "type": "enum",
+          "required": false,
+          "default": "directional",
+          "enumValues": [
+            "ambient",
+            "directional"
+          ],
+          "tooltip": "Ambient fill vs. a sun-like directional light"
+        },
+        {
+          "name": "color",
+          "type": "vec3",
+          "required": false,
+          "default": [
+            1,
+            1,
+            1
+          ],
+          "subtype": "COLOR"
+        },
+        {
+          "name": "intensity",
+          "type": "number",
+          "required": false,
+          "default": 1,
+          "min": 0,
+          "max": 20,
+          "step": 0.1,
+          "tooltip": "Brightness"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "type": {
+            "default": "directional",
+            "blenjs": {
+              "tooltip": "Ambient fill vs. a sun-like directional light"
+            },
+            "type": "string",
+            "enum": [
+              "ambient",
+              "directional"
+            ]
+          },
+          "color": {
+            "default": [
+              1,
+              1,
+              1
+            ],
+            "blenjs": {
+              "kind": "vec3",
+              "subtype": "COLOR"
+            },
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "intensity": {
+            "default": 1,
+            "blenjs": {
+              "step": 0.1,
+              "tooltip": "Brightness"
+            },
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "type",
+          "color",
+          "intensity"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "A light source authored in Blender. Ambient lights fill the scene evenly (position ignored); directional lights shine from the entity position toward the world origin, like the sun."
+    },
+    {
+      "name": "Camera",
+      "category": "Rendering",
+      "hasSystem": false,
+      "fields": [
+        {
+          "name": "projection",
+          "type": "enum",
+          "required": false,
+          "default": "orthographic",
+          "enumValues": [
+            "orthographic",
+            "perspective"
+          ],
+          "tooltip": "Flat side-on (orthographic) vs. perspective"
+        },
+        {
+          "name": "zoom",
+          "type": "number",
+          "required": false,
+          "default": 48,
+          "min": 1,
+          "max": 400,
+          "step": 1,
+          "tooltip": "Orthographic zoom (pixels per world unit)"
+        },
+        {
+          "name": "fov",
+          "type": "number",
+          "required": false,
+          "default": 50,
+          "min": 1,
+          "max": 170,
+          "tooltip": "Perspective field of view (degrees)"
+        },
+        {
+          "name": "near",
+          "type": "number",
+          "required": false,
+          "default": 0.1,
+          "min": 0.001,
+          "max": 100,
+          "step": 0.1,
+          "tooltip": "Near clip plane"
+        },
+        {
+          "name": "far",
+          "type": "number",
+          "required": false,
+          "default": 1000,
+          "min": 1,
+          "max": 100000,
+          "tooltip": "Far clip plane"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projection": {
+            "default": "orthographic",
+            "blenjs": {
+              "tooltip": "Flat side-on (orthographic) vs. perspective"
+            },
+            "type": "string",
+            "enum": [
+              "orthographic",
+              "perspective"
+            ]
+          },
+          "zoom": {
+            "default": 48,
+            "blenjs": {
+              "step": 1,
+              "tooltip": "Orthographic zoom (pixels per world unit)"
+            },
+            "type": "number",
+            "minimum": 1,
+            "maximum": 400
+          },
+          "fov": {
+            "default": 50,
+            "blenjs": {
+              "tooltip": "Perspective field of view (degrees)"
+            },
+            "type": "number",
+            "minimum": 1,
+            "maximum": 170
+          },
+          "near": {
+            "default": 0.1,
+            "blenjs": {
+              "step": 0.1,
+              "tooltip": "Near clip plane"
+            },
+            "type": "number",
+            "minimum": 0.001,
+            "maximum": 100
+          },
+          "far": {
+            "default": 1000,
+            "blenjs": {
+              "tooltip": "Far clip plane"
+            },
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100000
+          }
+        },
+        "required": [
+          "projection",
+          "zoom",
+          "fov",
+          "near",
+          "far"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "The view camera. The entity Transform.pos is the camera position; it looks along +Y at the XZ play plane (the runtime follows the player from here)."
+    },
+    {
+      "name": "Material",
+      "category": "Rendering",
+      "hasSystem": false,
+      "fields": [
+        {
+          "name": "color",
+          "type": "vec3",
+          "required": false,
+          "default": [
+            0.8,
+            0.8,
+            0.8
+          ],
+          "subtype": "COLOR"
+        },
+        {
+          "name": "opacity",
+          "type": "number",
+          "required": false,
+          "default": 1,
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "tooltip": "Transparency (1 = fully opaque)"
+        },
+        {
+          "name": "unlit",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "tooltip": "Flat colour (ignore lights) vs. shaded by the scene lights"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "color": {
+            "default": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "blenjs": {
+              "kind": "vec3",
+              "subtype": "COLOR"
+            },
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "opacity": {
+            "default": 1,
+            "blenjs": {
+              "step": 0.05,
+              "tooltip": "Transparency (1 = fully opaque)"
+            },
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "unlit": {
+            "default": true,
+            "blenjs": {
+              "tooltip": "Flat colour (ignore lights) vs. shaded by the scene lights"
+            },
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "color",
+          "opacity",
+          "unlit"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "Overrides the surface colour of a parametric primitive (platforms, goal, …). Model-backed entities keep their own glTF materials."
+    },
+    {
       "name": "Player",
       "category": "Gameplay",
       "hasSystem": true,
@@ -475,6 +779,108 @@
         "additionalProperties": false
       },
       "tooltip": "Moves the entity between waypoint entities, turning at the ends."
+    },
+    {
+      "name": "Trigger",
+      "category": "Logic",
+      "hasSystem": true,
+      "fields": [
+        {
+          "name": "on",
+          "type": "enum",
+          "required": false,
+          "default": "enter",
+          "enumValues": [
+            "enter",
+            "exit"
+          ],
+          "tooltip": "Fire when the player enters or exits the volume"
+        },
+        {
+          "name": "action",
+          "type": "enum",
+          "required": false,
+          "default": "remove",
+          "enumValues": [
+            "win",
+            "lose",
+            "remove"
+          ],
+          "tooltip": "win/lose end the level; remove deletes the targets"
+        },
+        {
+          "name": "targets",
+          "type": "array",
+          "required": false,
+          "itemType": "entityRef",
+          "default": [],
+          "tooltip": "Entities the \"remove\" action deletes (empty = the trigger itself)"
+        },
+        {
+          "name": "once",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "tooltip": "Fire only the first time"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "on": {
+            "default": "enter",
+            "blenjs": {
+              "tooltip": "Fire when the player enters or exits the volume"
+            },
+            "type": "string",
+            "enum": [
+              "enter",
+              "exit"
+            ]
+          },
+          "action": {
+            "default": "remove",
+            "blenjs": {
+              "tooltip": "win/lose end the level; remove deletes the targets"
+            },
+            "type": "string",
+            "enum": [
+              "win",
+              "lose",
+              "remove"
+            ]
+          },
+          "targets": {
+            "default": [],
+            "blenjs": {
+              "tooltip": "Entities the \"remove\" action deletes (empty = the trigger itself)"
+            },
+            "type": "array",
+            "items": {
+              "type": "string",
+              "blenjs": {
+                "kind": "entityRef"
+              }
+            }
+          },
+          "once": {
+            "default": true,
+            "blenjs": {
+              "tooltip": "Fire only the first time"
+            },
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "on",
+          "action",
+          "targets",
+          "once"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "A non-solid volume (the entity scale is its full size) that fires an action when the player enters or exits — author interactions in Blender without code."
     },
     {
       "name": "Goal",

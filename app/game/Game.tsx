@@ -3,6 +3,7 @@ import type { RawGame } from '@blenjs/runtime-three'
 import { Canvas } from '@react-three/fiber/webgpu'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Object3D } from 'three'
+import type { CameraData, TransformData } from '../components'
 import gameData from '../../platformer.blen.json'
 import { Bullets } from './Bullets'
 import { CAMERA_ZOOM } from './constants'
@@ -30,12 +31,18 @@ const World = () => {
   const order = useGame(s => s.order)
   const entities = useGame(s => s.entities)
   const list = order.map(id => entities[id]).filter(Boolean)
+  // Lights are authored as `Light` entities (rendered by renderEntity). Only when a
+  // scene defines none do we fall back to a built-in fill + sun, so glTF (PBR) models
+  // are never left unlit.
+  const hasLights = list.some(e => e.components.Light)
   return (
     <>
-      {/* glTF materials are lit (PBR) — without lights they render black. The basic-material
-          primitives (platforms, goal) are unaffected by these. */}
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[6, -10, 12]} intensity={2} />
+      {!hasLights && (
+        <>
+          <ambientLight intensity={0.9} />
+          <directionalLight position={[6, -10, 12]} intensity={2} />
+        </>
+      )}
       {/* useGLTF suspends until each model loads; systems/bullets keep running outside. */}
       <Suspense fallback={null}>
         <Level entities={list} renderEntity={renderEntity} />
@@ -50,12 +57,29 @@ const World = () => {
 // per level so every level starts with a fresh camera centred on the spawn.
 const GameView = ({ level, levelCount, onRestart }: { level: number; levelCount: number; onRestart: () => void }) => {
   useInput(onRestart) // R restarts the current level; also wires movement/jump/shoot keys
+
+  // An authored `Camera` entity (position from its Transform) configures the canvas;
+  // a scene without one keeps the previous hardcoded orthographic rig. The follow
+  // code in GameSystems only translates from this starting pose.
+  const entities = useGame(s => s.entities)
+  const camEnt = Object.values(entities).find(e => e.components.Camera)
+  const cam = camEnt?.components.Camera as CameraData | undefined
+  const camPos = (camEnt?.components.Transform as TransformData | undefined)?.pos
+  const position: [number, number, number] = camPos ? [camPos[0], camPos[1], camPos[2]] : [0, -16, 3]
+
   return (
     <>
       <Canvas
         key={level}
-        orthographic
-        camera={{ position: [0, -16, 3], up: [0, 0, 1], zoom: CAMERA_ZOOM, near: 0.1, far: 1000 }}
+        orthographic={(cam?.projection ?? 'orthographic') === 'orthographic'}
+        camera={{
+          position,
+          up: [0, 0, 1],
+          zoom: cam?.zoom ?? CAMERA_ZOOM,
+          fov: cam?.fov ?? 50,
+          near: cam?.near ?? 0.1,
+          far: cam?.far ?? 1000,
+        }}
         onCreated={({ camera }) => {
           camera.up.set(0, 0, 1)
           // Aim once straight along +Y, perpendicular to the XZ game plane; the follow

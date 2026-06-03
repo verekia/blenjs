@@ -76,6 +76,17 @@ export const vec4 = (def: Vec4 = [0, 0, 0, 0]) =>
     .default(def)
     .meta({ blenjs: { kind: 'vec4', subtype: 'COLOR' } })
 
+/**
+ * An RGB colour, each channel 0–1. Marshals exactly like a `vec3` (a 3-number
+ * tuple) but the `COLOR` subtype makes Blender draw a colour swatch instead of an
+ * XYZ field — the natural way to author a colour in the inspector.
+ */
+export const rgb = (def: Vec3 = [1, 1, 1]) =>
+  z
+    .tuple([z.number(), z.number(), z.number()])
+    .default(def)
+    .meta({ blenjs: { kind: 'vec3', subtype: 'COLOR' } })
+
 // Convenience aliases for the literal vector types used across the codebase.
 export type Vec2 = [number, number]
 export type Vec3 = [number, number, number]

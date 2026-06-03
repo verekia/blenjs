@@ -12,7 +12,8 @@ export const BULLET_HIT_RADIUS = 0.7
 export const FIRE_COOLDOWN = 0.18
 export const PICKUP_RADIUS = 0.9
 export const GOAL_RADIUS = 1.2
-export const FALL_KILL_Z = -25
+// (The fall-death plane is no longer a constant — it's an authored kill-volume Trigger placed
+// below each level in Blender; see app/systems/trigger.ts and the Trigger component.)
 
 // --- Facing -----------------------------------------------------------------
 // Entities turn to face their movement direction with a yaw around the up axis

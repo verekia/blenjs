@@ -78,9 +78,10 @@ def main() -> int:
     # whole-number floats (9 -> 9.0) and a long-tail float must quantize
     ents["0a10c0de"]["Transform"]["pos"] = [9.0, 0.0, 0.0]
     ents["3d40f30b"]["Transform"]["pos"] = [15.00001, 0.0, 2.5]
-    # reorder keys within a PLAIN entity (Collider before name/Transform -> name first)
+    # reorder keys within a PLAIN entity (components before name/Transform -> name first,
+    # Transform next, then components alpha: Collider, Material)
     g = ents["0a10c0de"]
-    ents["0a10c0de"] = {"Collider": g["Collider"], "name": g["name"], "Transform": g["Transform"]}
+    ents["0a10c0de"] = {"Collider": g["Collider"], "Material": g["Material"], "name": g["name"], "Transform": g["Transform"]}
     # reorder keys within a PREFAB INSTANCE: name/prefab/Transform/overrides must re-sort,
     # and sparse overrides must NOT gain default fields (Patrol.speed/loop stay inherited).
     en = ents["81a2c5e0"]
