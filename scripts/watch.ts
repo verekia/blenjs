@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
  * Dev-loop glue (spec §10.7): regenerate the schema when the component registry
  * changes, so Blender's UI and the runtime stay in sync while you edit components.
  *
- * game.json needs no watching here: the app imports it as a module, so saving it
+ * .blen.json needs no watching here: the app imports it as a module, so saving it
  * (or saving from Blender) is picked up by the dev server's Fast Refresh directly.
  *
  * Run alongside the dev server:  bun run watch   (in one terminal)

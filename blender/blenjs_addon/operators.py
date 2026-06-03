@@ -11,14 +11,14 @@ from .uuids import ensure_uuid
 
 class BLENJS_OT_import_json(bpy.types.Operator):
     bl_idname = "blenjs.import_json"
-    bl_label = "Import BlenJS JSON"
-    bl_description = "Load all scenes from a BlenJS game.json"
+    bl_label = "Import BlenJS Project"
+    bl_description = "Load all scenes from a BlenJS project (.blen.json)"
     bl_options = {"REGISTER", "UNDO"}
 
     filepath: StringProperty(subtype="FILE_PATH")
     directory: StringProperty(subtype="DIR_PATH")
     files: CollectionProperty(type=bpy.types.OperatorFileListElement)
-    filter_glob: StringProperty(default="*.json", options={"HIDDEN"})
+    filter_glob: StringProperty(default="*.blen.json", options={"HIDDEN"})
 
     def invoke(self, context, event):
         # Drag-drop (FileHandler) sets directory+files; import straight away.
@@ -33,6 +33,11 @@ class BLENJS_OT_import_json(bpy.types.Operator):
             path = os.path.join(self.directory, self.files[0].name)
         if not path:
             self.report({"ERROR"}, "No file path provided")
+            return {"CANCELLED"}
+        if not path.endswith(".blen.json"):
+            # Blender's drop matching only sees the last extension (.json), so other .json
+            # files reach here too — ignore anything that isn't a BlenJS project (*.blen.json).
+            print(f"[blenjs] ignoring drop, not a .blen.json project: {os.path.basename(path)}")
             return {"CANCELLED"}
         try:
             scenes.import_game(path, context)
@@ -49,10 +54,17 @@ class BLENJS_OT_export(bpy.types.Operator):
     bl_description = "Write canonical JSON back to the file this game was loaded from"
     bl_options = {"REGISTER"}
 
+    @classmethod
+    def poll(cls, context):
+        # Only take over Cmd/Ctrl+S when a BlenJS project is loaded (a .blen.json was imported,
+        # so blenjs_filepath is set). When it isn't, this keymap item is skipped and Blender's
+        # native save runs — the add-on never touches Cmd/Ctrl+S in unrelated .blend work.
+        return bool(getattr(context.window_manager, "blenjs_filepath", ""))
+
     def execute(self, context):
         path = context.window_manager.blenjs_filepath
-        if not path:
-            self.report({"WARNING"}, "No game.json loaded — drag one into the viewport first")
+        if not path:  # defensive: poll already gates this for the keymap
+            self.report({"WARNING"}, "No BlenJS project loaded")
             return {"CANCELLED"}
         try:
             scenes.export_to_path(path)
@@ -131,7 +143,7 @@ class BLENJS_OT_ref_remove(bpy.types.Operator):
 
 
 def menu_import(self, context):
-    self.layout.operator(BLENJS_OT_import_json.bl_idname, text="BlenJS Game (.json)")
+    self.layout.operator(BLENJS_OT_import_json.bl_idname, text="BlenJS Project (.blen.json)")
 
 
 CLASSES = (

@@ -1,7 +1,9 @@
 """Cmd/Ctrl+S override (spec §6.7).
 
-We rebind save to the BlenJS export operator rather than relying on ``save_pre``,
-which only fires on real ``.blend`` saves — and BlenJS never saves a ``.blend``.
+We bind save to the BlenJS export operator rather than relying on ``save_pre`` (which only
+fires on real ``.blend`` saves — and BlenJS never saves a ``.blend``). The override is
+CONDITIONAL: ``BLENJS_OT_export.poll()`` is true only when a BlenJS project is loaded, so in
+any other file the keymap item is skipped and Blender's native save runs untouched.
 """
 
 import bpy

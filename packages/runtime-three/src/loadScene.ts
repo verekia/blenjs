@@ -1,7 +1,7 @@
 import { getComponent, type Entity, type Registry } from '@blenjs/core'
 
 /**
- * Raw, un-validated shape of `game.json` as parsed by `JSON.parse`. JSON typing is
+ * Raw, un-validated shape of `.blen.json` as parsed by `JSON.parse`. JSON typing is
  * strict (a number is a number, a string is a string), but each component payload
  * is still run through its Zod schema below to validate ranges, enums, and shape.
  */
@@ -33,7 +33,7 @@ export const loadScene = (game: RawGame, sceneName: string, registry: Registry):
   const version = game.version ?? 0
   if (version !== registry.version) {
     console.warn(
-      `[blenjs] game.json schemaVersion ${version} != registry version ${registry.version}. ` +
+      `[blenjs] .blen.json schemaVersion ${version} != registry version ${registry.version}. ` +
         `Data may need migration.`,
     )
   }
@@ -77,7 +77,7 @@ export const loadScene = (game: RawGame, sceneName: string, registry: Registry):
   }
 
   if (errors.length) {
-    throw new ValidationError(`Invalid game.json (${errors.length} problem(s)):\n - ${errors.join('\n - ')}`)
+    throw new ValidationError(`Invalid .blen.json (${errors.length} problem(s)):\n - ${errors.join('\n - ')}`)
   }
 
   return { version, sceneName, entities }

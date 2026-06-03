@@ -22,7 +22,7 @@ import os
 import bmesh
 import bpy
 
-from . import io_json, prefabs, schema, transform
+from . import io_json, prefabs, project, schema, transform
 from .uuids import ensure_uuid
 
 UNIT_CUBE = "BLENJS_UnitCube"
@@ -43,36 +43,6 @@ def _unit_cube_mesh():
     bm.to_mesh(me)
     bm.free()
     return me
-
-
-def _first_existing_file(*paths) -> "str | None":
-    for p in paths:
-        if p and os.path.isfile(p):
-            return p
-    return None
-
-
-def _resolve_assets_dir(base: str) -> str:
-    """Locate the built-glTF directory. PRIMARY: relative to the loaded game.json's folder,
-    so a *zip-installed* add-on (whose code lives in Blender's addons dir, not the repo)
-    still finds ``<repo>/app/public/assets``. Falls back to ``$BLENJS_ASSETS`` and the
-    repo-relative dev path next to the add-on."""
-    candidates = []
-    env = os.environ.get("BLENJS_ASSETS")
-    if env:
-        candidates.append(env)
-    candidates += [
-        os.path.join(base, "app", "public", "assets"),
-        os.path.join(base, "public", "assets"),
-        os.path.join(base, "assets"),
-    ]
-    here = os.path.dirname(__file__)
-    candidates.append(os.path.abspath(os.path.join(here, "..", "..", "app", "public", "assets")))  # dev: from repo
-    candidates.append(here)  # glbs bundled next to the add-on (if ever)
-    for c in candidates:
-        if c and os.path.isdir(c):
-            return c
-    return base
 
 
 def _load_model_mesh(src: str):
@@ -238,19 +208,20 @@ def _clear_managed(scene):
 
 
 def import_game(filepath: str, context) -> str:
-    sch = schema.get_schema()
+    # A BlenJS project root is the folder containing the .blen.json; the schema, prefab
+    # manifest, and model assets are all resolved from there (see project.py).
+    root = project.root_of(filepath)
+    sch = schema.apply_schema(project.schema_path(root))  # (re)builds PGs for THIS project
     if sch is None:
-        raise RuntimeError("BlenJS schema not loaded — set the schema path in add-on preferences.")
+        raise RuntimeError(
+            f"components.schema.json not found under {root} "
+            f"(expected generated/components.schema.json) — run `bun run codegen`."
+        )
 
     data = io_json.load_file(filepath)
-
-    # Resolve prefab data + model assets relative to the loaded game.json's folder, so a
-    # zip-installed add-on (code lives in Blender's addons dir) still finds the repo's
-    # prefabs.json and app/public/assets — not a path relative to the add-on itself.
+    prefabs.load(project.prefabs_path(root))
     global _assets_dir
-    base = os.path.dirname(os.path.abspath(filepath))
-    prefabs.load(_first_existing_file(os.path.join(base, "generated", "prefabs.json")))  # None -> own fallbacks
-    _assets_dir = _resolve_assets_dir(base)
+    _assets_dir = project.assets_dir(root)
     _model_meshes.clear()  # re-import glTF fresh each load (picks up rebuilt assets)
 
     wm = getattr(context, "window_manager", None)
@@ -397,8 +368,7 @@ def build_data(sch: "io_json.Schema") -> dict:
 def export_to_path(filepath: str) -> str:
     sch = schema.get_schema()
     if sch is None:
-        raise RuntimeError("BlenJS schema not loaded — set the schema path in add-on preferences.")
-    prefabs.get()  # ensure the manifest is loaded for sparse prefab export (lazy)
+        raise RuntimeError("No BlenJS project loaded — load a .blen.json first (drag it into the viewport).")
     text = io_json.canonical_json(build_data(sch), sch)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(text)

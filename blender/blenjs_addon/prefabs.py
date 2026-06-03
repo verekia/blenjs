@@ -1,6 +1,6 @@
 """Prefab manifest (``generated/prefabs.json``) loading + resolution for the add-on.
 
-Mirrors the runtime ``resolvePrefabs``: a game.json entity with a ``prefab`` key
+Mirrors the runtime ``resolvePrefabs``: a .blen.json entity with a ``prefab`` key
 inherits the prefab's components, overlaid per-field by the instance's own overrides.
 Used to (a) visualize an instance with its real, *resolved* transform/data on import
 and (b) diff back to a sparse override set on export (see ``scenes.build_data``).
@@ -17,36 +17,22 @@ RESERVED = ("name", "prefab")
 _prefabs: "dict | None" = None  # cached manifest: {name: {"name", "components"}}
 
 
-def find_prefabs_path() -> "str | None":
-    """Locate ``prefabs.json`` the same way schema.py locates its schema."""
-    env = os.environ.get("BLENJS_PREFABS")
-    if env and os.path.isfile(env):
-        return env
-    here = os.path.dirname(__file__)
-    local = os.path.join(here, "prefabs.json")  # bundled next to the add-on (zip)
-    if os.path.isfile(local):
-        return local
-    repo = os.path.abspath(os.path.join(here, "..", "..", "generated", "prefabs.json"))
-    if os.path.isfile(repo):
-        return repo
-    return None
-
-
-def load(path: "str | None" = None) -> dict:
+def load(path: "str | None") -> dict:
+    """Load the prefab manifest from a PROJECT path (``<root>/generated/prefabs.json``).
+    A missing file yields an empty manifest, so prefab instances fall back to placeholders."""
     global _prefabs
-    p = path or find_prefabs_path()
-    if not p:
-        print("[blenjs] prefabs.json not found — prefab instances will show as placeholders.")
+    if path and os.path.isfile(path):
+        with open(path, "r", encoding="utf-8") as f:
+            _prefabs = json.load(f) or {}
+        print(f"[blenjs] loaded {len(_prefabs)} prefab(s) from {path}")
+    else:
+        print(f"[blenjs] prefabs.json not found at {path} — run `bun run build:models` (instances show as placeholders).")
         _prefabs = {}
-        return _prefabs
-    with open(p, "r", encoding="utf-8") as f:
-        _prefabs = json.load(f) or {}
-    print(f"[blenjs] loaded {len(_prefabs)} prefab(s) from {p}")
     return _prefabs
 
 
 def get() -> dict:
-    return _prefabs if _prefabs is not None else load()
+    return _prefabs if _prefabs is not None else {}
 
 
 def definition(name: str) -> "dict | None":

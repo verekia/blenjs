@@ -60,10 +60,10 @@ export const makeContext = (dt: number, elapsed: number): GameContext => {
 
 /**
  * Load + validate a scene from the (already-parsed) game data and hydrate the
- * store. `game.json` is imported as a module, so the bundler hands us a parsed
+ * store. `.blen.json` is imported as a module, so the bundler hands us a parsed
  * object — no fetch, and editing the file triggers HMR. The player is spawned in
  * code at the PlayerSpawn marker (the emergent layer, spec §4) — note there is no
- * entity carrying the Player component in game.json.
+ * entity carrying the Player component in .blen.json.
  */
 export const hydrateGame = (game: RawGame, sceneName = 'level1') => {
   const resolved = resolvePrefabs(game, sceneName, prefabs) // inline prefab defaults + overrides
@@ -79,7 +79,7 @@ export const hydrateGame = (game: RawGame, sceneName = 'level1') => {
     order.push(e.uuid)
   }
 
-  // The player is the emergent layer (spawned in code, not authored in game.json).
+  // The player is the emergent layer (spawned in code, not authored in .blen.json).
   // Build it from the `player` prefab — same model + tuning as any instance — placed
   // at the PlayerSpawn marker, resolved through the very same prefab+load path.
   const spawn = entities.find(e => e.components.PlayerSpawn)

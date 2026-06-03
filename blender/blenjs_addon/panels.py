@@ -66,8 +66,8 @@ class BLENJS_PT_inspector(bpy.types.Panel):
 
         sch = schema.get_schema()
         if sch is None:
-            layout.label(text="Schema not loaded", icon="ERROR")
-            layout.label(text="Set the path in add-on preferences.")
+            layout.label(text="No BlenJS project loaded", icon="INFO")
+            layout.label(text="Drag a .blen.json project into the viewport to start.")
             return
 
         col = layout.column(align=True)

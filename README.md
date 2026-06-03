@@ -4,7 +4,7 @@
 > JSON is the source of truth; logic lives in TypeScript; the game renders in an R3F
 > **WebGPU** canvas inside Next.js.
 
-Drop a `game.json` onto Blender, design a platformer, press **Cmd/Ctrl+S**, and
+Drop a `platformer.blen.json` onto Blender, design a platformer, press **Cmd/Ctrl+S**, and
 watch it reload as a playable WebGPU game.
 
 BlenJS is **not a game engine**. It is an **editor + data pipeline** layered over
@@ -31,7 +31,7 @@ Blender, with R3F as the runtime.
 
 ```
 blenjs/
-  game.json                      # all scenes — THE source of truth (committed)
+  platformer.blen.json           # a project (scenes) — source of truth; a repo can hold several *.blen.json
   prefabs/                       # reusable prefab/model art (committed)
     coin.json coin.blend         #   data (components + defaults) + editable model source
     …                            #   pickup, enemy, player
@@ -70,7 +70,7 @@ bun run dev            # Next.js dev server (WebGPU canvas) at http://localhost:
 Play with **← →** / **A D** to move, **Space / W** to jump, **F / J / click** to
 shoot. Collect coins, shoot enemies, reach the magenta goal. **R** restarts.
 
-The app imports `game.json` as a module, so editing it (or saving from Blender)
+The app imports `platformer.blen.json` as a module, so editing it (or saving from Blender)
 hot-reloads the running game through the dev server's Fast Refresh — no extra
 process needed. To also regenerate the schema as you edit the component registry,
 run the watcher in a second terminal:
@@ -81,10 +81,9 @@ bun run watch          # regenerates the schema on registry change
 
 ### Blender
 
-See **[blender/README.md](blender/README.md)**. In short: `bun run codegen`, then
-`python3 blender/tools/build_addon.py`, then install
-`blender/dist/blenjs_addon.zip` (Blender 4.1+). Drag `game.json` into the viewport;
-Cmd/Ctrl+S saves canonical JSON.
+See **[blender/README.md](blender/README.md)**. Install `blenjs_addon.zip` like any Blender
+add-on (Blender 4.1+), run `bun run codegen` and `bun run build:models` in your project, then
+drag `platformer.blen.json` into the viewport and Cmd/Ctrl+S to save.
 
 ## How it fits together
 
@@ -93,10 +92,10 @@ app/components.ts (registry, Zod schemas + editor metadata)
         │  bun run codegen
         ▼
 generated/components.schema.json ───────────────► Blender add-on builds typed UI
-        │                                          (drag game.json in, edit, Cmd/Ctrl+S)
+        │                                          (drag platformer.blen.json in, edit, Cmd/Ctrl+S)
         │                                                       │
         ▼                                                       ▼ canonical JSON
-game.json  ◄──────────────────────── the single source of truth ──────────────────
+platformer.blen.json  ◄──────────────────────── the single source of truth ──────────────────
         │  imported as a module (bundled; HMR on save)
         ▼
 resolvePrefabs (merge prefab defaults + overrides) → loadScene (Zod) → resolveRefs (UUID map)
@@ -114,7 +113,7 @@ component on which entity_ failed.
 
 ## The example game
 
-`game.json` ships a playable platformer (`level1`): box platforms (`Collider`,
+`platformer.blen.json` ships a playable platformer (`level1`): box platforms (`Collider`,
 parametric blockout — no model), `coin`/`pickup`/`enemy` **prefab instances** (gold
 coins, a cyan gem, two patrolling enemies), a `PlayerSpawn`, and a `Goal`. The player
 is spawned in code at the spawn marker from the `player` prefab; bullets, score, ammo,
@@ -135,7 +134,7 @@ game's Z-up world with no rotation) and (2) aggregate `prefabs/*.json` →
 `generated/prefabs.json`. Both outputs are committed, so the web build never needs
 Blender. Re-run it whenever a prefab's `.blend` or `.json` changes.
 
-A `game.json` entity references a prefab with the reserved `prefab` key and overrides
+A `.blen.json` entity references a prefab with the reserved `prefab` key and overrides
 **Transform + individual component fields** (`Model` itself is the single-use primitive —
 an entity may carry a bare `Model` with no prefab):
 
@@ -163,7 +162,7 @@ extraction is trivial. Dependency arrows point strictly **outward** from `core`:
 | `@blenjs/runtime-r3f`   | runtime-three, react, three, R3F | yes            | yes            |
 
 The Blender add-on ships on its own channel (zip), versioned in lockstep with the
-schema contract (`schemaVersion`). `game.json`, `app/components.ts`, and
+schema contract (`schemaVersion`). `platformer.blen.json`, `app/components.ts`, and
 `app/systems/` are application content — never a dependency, at most a starter.
 
 ## Commands
@@ -176,7 +175,7 @@ schema contract (`schemaVersion`). `game.json`, `app/components.ts`, and
 | `bun run build`          | codegen + Next.js static export to `app/out`                                               |
 | `bun run watch`          | regenerates `components.schema.json` when the registry changes                             |
 | `bun run typecheck`      | `tsc --noEmit` across all workspaces                                                       |
-| `bun run gen:json`       | regenerate the canonical `game.json` from the level builder                                |
+| `bun run gen:json`       | regenerate the canonical `platformer.blen.json` from the level builder                     |
 | `bun run test:roundtrip` | the zero-diff JSON round-trip acceptance test                                              |
 | `bunx oxfmt .`           | format (matches the reference repo's config)                                               |
 | `bunx oxlint .`          | lint                                                                                       |
@@ -195,7 +194,7 @@ What is exercised headlessly in this repo (all green):
   drives the real add-on data path through a fake `bpy` — load → datablocks →
   save is also zero-diff, with UUID refs resolving.
 - **runtime** (`scripts/check-runtime.ts`): `loadScene` + `resolveRefs` on the
-  real `game.json`, and validation errors name the component + entity.
+  real `platformer.blen.json`, and validation errors name the component + entity.
 - **`tsc --noEmit`** clean across all packages + app; **`next build`** static
   export succeeds; **oxfmt/oxlint** clean.
 

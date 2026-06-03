@@ -16,7 +16,7 @@ export { z }
 
 /**
  * The schema-contract version. This is the real stability promise: it is embedded
- * in `components.schema.json` and in every game.json export so the runtime can detect
+ * in `components.schema.json` and in every .blen.json export so the runtime can detect
  * drift and migrate. Bump it whenever the *shape* of the contract changes.
  */
 export const SCHEMA_VERSION = 1

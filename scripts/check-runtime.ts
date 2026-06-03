@@ -15,14 +15,14 @@ import { registry } from '../app/components'
 const prefabs = prefabsJson as PrefabManifest
 
 /**
- * Headless smoke test of the runtime-three data path against the real game.json.
+ * Headless smoke test of the runtime-three data path against the real .blen.json.
  * Proves JSON -> Zod validation -> entities -> UUID ref resolution, and that a
  * malformed value reports which component on which entity failed (spec §11).
  *
  *   bun run scripts/check-runtime.ts
  */
 const here = dirname(fileURLToPath(import.meta.url))
-const jsonText = readFileSync(resolve(here, '../game.json'), 'utf8')
+const jsonText = readFileSync(resolve(here, '../platformer.blen.json'), 'utf8')
 
 let failures = 0
 const assert = (cond: unknown, msg: string) => {
@@ -33,7 +33,7 @@ const assert = (cond: unknown, msg: string) => {
   }
 }
 
-console.log('resolvePrefabs + loadScene + resolveRefs on game.json (level1):')
+console.log('resolvePrefabs + loadScene + resolveRefs on .blen.json (level1):')
 const game = parseGame(jsonText)
 const { entities, version } = loadScene(resolvePrefabs(game, 'level1', prefabs), 'level1', registry)
 const { byId } = resolveRefs(entities, registry)

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate the canonical root ``game.json`` for the example platformer.
+"""Generate the canonical example project ``platformer.blen.json``.
 
-Authoring the file *through the canonicalizer* guarantees the committed JSON is
-already in canonical form, so the Blender no-op round-trip is a zero diff by
-construction. Run with::
+A BlenJS project file is named ``<name>.blen.json`` (so one repo can hold several —
+``platformer.blen.json``, ``shmup.blen.json`` — sharing the same prefabs/schema/assets).
+Authoring the file *through the canonicalizer* guarantees the committed JSON is already in
+canonical form, so the Blender no-op round-trip is a zero diff by construction. Run with::
 
     python3 blender/tools/gen_game_json.py
     # or: bun run gen:json
@@ -20,7 +21,7 @@ sys.path.insert(0, ADDON)  # import io_json directly, bypassing the bpy-laden pa
 import io_json  # noqa: E402
 
 SCHEMA_PATH = os.path.join(ROOT, "generated", "components.schema.json")
-OUT_PATH = os.path.join(ROOT, "game.json")
+OUT_PATH = os.path.join(ROOT, "platformer.blen.json")
 
 
 def transform(pos, scale=None):

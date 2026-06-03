@@ -1,53 +1,43 @@
 # BlenJS Blender add-on
 
-Blender becomes the level editor for your R3F game. Drag a `game.json` into the
-viewport to load every scene as a Blender Scene datablock, design with normal
-Blender tools, and press **Cmd/Ctrl+S** to write canonical JSON back to the file
-you loaded. No `.blend` is ever saved — Blender is a stateless view over the JSON.
+Blender becomes the level editor for your R3F game. Drag a `.blen.json` project into the
+viewport to load every scene as a Blender Scene datablock, design with normal Blender tools,
+and press **Cmd/Ctrl+S** to write canonical JSON back to the file you loaded. No `.blend` is
+ever saved — Blender is a stateless view over the JSON.
 
 ## Requirements
 
 - **Blender 4.1+** (the drag-and-drop `FileHandler` API was added in 4.1).
-- The add-on reads `components.schema.json` (the codegen output) to build its UI.
 
 ## Install
 
-**Option A — packaged zip (recommended):**
+Download `blenjs_addon.zip` (blenjs.com or the GitHub releases) and install it like any Blender
+add-on: **Edit ▸ Preferences ▸ Add-ons ▸ Install from Disk…**, then enable “BlenJS”.
 
-```bash
-bun run codegen                       # writes generated/components.schema.json
-bun run build:models                  # writes generated/prefabs.json + app/public/assets/*.glb
-python3 blender/tools/build_addon.py  # writes blender/dist/blenjs_addon.zip (schema + prefabs bundled)
+> Building it yourself: `python3 blender/tools/build_addon.py` writes
+> `blender/dist/blenjs_addon.zip`. For add-on development, point Blender's scripts path at this
+> repo or symlink `blender/blenjs_addon` into your `addons/` folder (restart Blender after
+> reinstalling to pick up code changes).
+
+## Project layout
+
+A BlenJS project is a `<name>.blen.json` file. The add-on reads everything else relative to its
+folder, so several projects can share one set of prefabs, schema, and assets:
+
+```
+platformer.blen.json               a project's scenes (shmup.blen.json, … can sit alongside)
+generated/components.schema.json   the schema — bun run codegen (builds the editor UI)
+generated/prefabs.json             the prefab manifest — bun run build:models
+app/public/assets/<name>.glb       the built models — bun run build:models
+prefabs/<name>.{json,blend}        prefab data + editable model source
 ```
 
-Then in Blender: **Edit ▸ Preferences ▸ Add-ons ▸ Install from Disk…** and pick
-`blender/dist/blenjs_addon.zip`. Enable “BlenJS”.
-
-**Option B — from the repo (dev):** point Blender's scripts path at this repo, or
-symlink `blender/blenjs_addon` into your Blender `addons/` folder, then enable it.
-When loaded from the repo, the add-on finds `generated/components.schema.json`
-automatically (repo-relative).
-
-> **Reinstalling? Restart Blender.** Blender does not re-import an add-on's Python
-> modules on reinstall — the old code stays live in memory, so a fresh zip can look
-> like it changed nothing. After **Install from Disk…** (or any code change), restart
-> Blender to load the new code.
-
-### Where the schema comes from
-
-The add-on locates `components.schema.json` in this order:
-
-1. the path set in **Add-on Preferences ▸ components.schema.json**
-2. the `BLENJS_SCHEMA` environment variable
-3. a copy bundled next to the add-on (what `build_addon.py` ships)
-4. a repo-relative `generated/components.schema.json` (dev convenience)
-
-Re-run `bun run codegen` and reload the add-on whenever you change the component
-registry (`app/components.ts`).
+Run `bun run codegen` and `bun run build:models` in your project, then load the `.blen.json`.
+After changing components or models, re-run the relevant command and re-load it.
 
 ## Workflow
 
-1. **Load** — drag `game.json` onto the 3D viewport (or File ▸ Import ▸ BlenJS
+1. **Load** — drag `.blen.json` onto the 3D viewport (or File ▸ Import ▸ BlenJS
    Game). Each scene becomes a Blender Scene; switch scenes with Blender's
    native scene dropdown.
 2. **Design** — move/rotate/scale objects normally (that *is* the `Transform`
@@ -57,7 +47,7 @@ registry (`app/components.ts`).
 
    > **Coordinates** — the game and Blender share one frame: **Z-up right-handed**
    > (X right, Y depth, Z up). Position and scale are *identical* on both sides and
-   > pass through untouched; `game.json` is Z-up too. The one thing that still
+   > pass through untouched; `.blen.json` is Z-up too. The one thing that still
    > differs is the Euler *order* for the same `'XYZ'` triple (three.js `Rx·Ry·Rz`
    > vs Blender `Rz·Ry·Rx`), so rotations are reconciled through matrices, not
    > copied verbatim (see `blenjs_addon/transform.py`). On the three.js side the
@@ -103,7 +93,7 @@ CI (no Blender required) — the canonicalizer is `bpy`-free and the datablock p
 runs against a faithful fake `bpy`:
 
 ```bash
-bun run test:roundtrip                          # load game.json -> save -> ZERO diff (+ normalization)
+bun run test:roundtrip                          # load .blen.json -> save -> ZERO diff (+ normalization)
 python3 blender/tests/test_blender_roundtrip.py # datablock round-trip via a fake bpy (load->datablocks->save = 0 diff)
 python3 blender/tests/test_transform.py         # Z-up Euler-order conversion: conventions + exact round-trip
 ```

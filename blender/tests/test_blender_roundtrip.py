@@ -4,7 +4,7 @@
 Drives the REAL add-on code (schema.register, scenes.import_game,
 scenes.build_data) against a fake bpy, proving:
 
-    load game.json -> Blender datablocks -> save  ==  zero diff
+    load .blen.json -> Blender datablocks -> save  ==  zero diff
 
 This complements test_roundtrip.py (which tests only the JSON canonicalizer): it
 also exercises the native-transform mapping, the dynamic PropertyGroup slots, the
@@ -28,7 +28,7 @@ import blenjs_addon.io_json as io_json  # noqa: E402
 import blenjs_addon.scenes as scenes  # noqa: E402
 import blenjs_addon.schema as schema  # noqa: E402
 
-GAME_PATH = os.path.join(ROOT, "game.json")
+GAME_PATH = os.path.join(ROOT, "platformer.blen.json")
 
 OK = "\033[32m"
 FAIL = "\033[31m"
@@ -42,17 +42,18 @@ def _diff(a: str, b: str) -> str:
 
 
 def main() -> int:
-    schema.register()
-    sch = schema.get_schema()
-    if sch is None:
-        print(f"{FAIL}FAIL{END} schema did not load")
-        return 1
+    schema.register()  # static only; the schema PGs are built per-project by import_game
 
     with open(GAME_PATH, "r", encoding="utf-8") as f:
         original = f.read()
 
-    # Import the JSON into fake datablocks, then export straight back.
+    # Import the JSON into fake datablocks — this resolves + applies the schema, prefab
+    # manifest, and assets from the project root (the repo) — then export straight back.
     scenes.import_game(GAME_PATH, bpy.context)
+    sch = schema.get_schema()
+    if sch is None:
+        print(f"{FAIL}FAIL{END} schema did not load (expected generated/components.schema.json)")
+        return 1
     rebuilt = io_json.canonical_json(scenes.build_data(sch), sch)
 
     failures = 0

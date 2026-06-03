@@ -5,7 +5,7 @@ Runs the REAL add-on code against the REAL ``bpy`` inside Blender, proving the
 data path that the fake-bpy test (``test_blender_roundtrip.py``) can only
 approximate:
 
-  1. load game.json -> Blender datablocks -> save  ==  zero diff
+  1. load .blen.json -> Blender datablocks -> save  ==  zero diff
   2. entity-refs (``Patrol.waypoints``) round-trip with no phantom UUIDs
      (the regression: a UUID stored via ``obj.blenjs_uuid =`` is invisible to
      ``obj.get("blenjs_uuid")``, so ``ensure_uuid`` minted a fresh id per call
@@ -36,7 +36,7 @@ import blenjs_addon.io_json as io_json  # noqa: E402
 import blenjs_addon.scenes as scenes  # noqa: E402
 import blenjs_addon.schema as schema  # noqa: E402
 
-GAME_PATH = os.path.join(ROOT, "game.json")
+GAME_PATH = os.path.join(ROOT, "platformer.blen.json")
 
 
 def _diff(a: str, b: str) -> str:
@@ -60,19 +60,20 @@ def _entity_counts(sch) -> dict:
 
 
 def main() -> int:
-    _register()
-    sch = schema.get_schema()
-    if sch is None:
-        print("FAIL: schema did not load (set BLENJS_SCHEMA or run from the repo)")
-        return 1
+    _register()  # static only; the schema PGs are built per-project by import_game
 
     with open(GAME_PATH, "r", encoding="utf-8") as f:
         original = f.read()
 
     failures = 0
 
-    # 1) load -> datablocks -> save == zero diff
+    # 1) load -> datablocks -> save == zero diff. import_game resolves + applies the schema,
+    # prefab manifest, and assets from the project root (the repo), never the add-on dir.
     scenes.import_game(GAME_PATH, bpy.context)
+    sch = schema.get_schema()
+    if sch is None:
+        print("FAIL: components.schema.json not found under the repo (run `bun run codegen`)")
+        return 1
     rebuilt = io_json.canonical_json(scenes.build_data(sch), sch)
     if rebuilt == original:
         print("PASS: datablock round-trip is byte-stable (load -> datablocks -> save == zero diff)")

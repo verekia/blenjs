@@ -3,7 +3,7 @@ import type { RawGame } from '@blenjs/runtime-three'
 import { Canvas } from '@react-three/fiber/webgpu'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Object3D } from 'three'
-import gameData from '../../game.json'
+import gameData from '../../platformer.blen.json'
 import { Bullets } from './Bullets'
 import { hydrateGame } from './context'
 import { HUD } from './HUD'
@@ -12,7 +12,7 @@ import { renderEntity } from './Level'
 import { useGame } from './store'
 import { GameSystems } from './Systems'
 
-// The world is Z-up right-handed (same frame as Blender / game.json): X right,
+// The world is Z-up right-handed (same frame as Blender / .blen.json): X right,
 // Y depth, Z up. three.js has no hardcoded world up — it only reads `Object3D.up`
 // for `lookAt()` and controls — so we point the default up at +Z before any
 // camera is created. The renderer is unaffected; only orientation math is.
@@ -44,8 +44,8 @@ export const Game = () => {
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // game.json is imported as a module, so it's bundled (no runtime fetch) and the
-  // dev loop is just Fast Refresh: editing game.json — or saving from Blender —
+  // .blen.json is imported as a module, so it's bundled (no runtime fetch) and the
+  // dev loop is just Fast Refresh: editing .blen.json — or saving from Blender —
   // re-evaluates this module with a fresh `gameData`. Keying `load` on it rebuilds
   // the callback, which re-fires the effect below and reloads the level.
   const load = useCallback(() => {

@@ -27,46 +27,18 @@ from bpy.props import (
 
 from . import io_json
 
-_ADDON = __package__.partition(".")[0]
-
 # Component handled by the native object transform rather than a PropertyGroup.
 NATIVE_TRANSFORM = "Transform"
 
 SAFE_VEC_SUBTYPES = {"XYZ", "TRANSLATION", "COLOR", "DIRECTION", "VELOCITY", "EULER", "QUATERNION", "NONE"}
 
-# Module state, populated on register.
+# Module state. The schema-driven PropertyGroups are PER-PROJECT: built by apply_schema()
+# when a .blen.json is loaded (the schema resolved relative to the project root), not at
+# add-on enable. BLENJS_PG_ObjectRef is the one static class.
 _schema: "io_json.Schema | None" = None
 _component_pgs: "dict[str, type]" = {}
-_registered_classes: "list[type]" = []
+_dynamic_classes: "list[type]" = []
 _object_attrs: "list[str]" = []
-
-
-# --------------------------------------------------------------------------- #
-# Locating the schema file
-# --------------------------------------------------------------------------- #
-def find_schema_path() -> "str | None":
-    # 1) addon preference
-    try:
-        prefs = bpy.context.preferences.addons[_ADDON].preferences
-        p = bpy.path.abspath(prefs.schema_path) if prefs.schema_path else ""
-        if p and os.path.isfile(p):
-            return p
-    except (KeyError, AttributeError):
-        pass
-    # 2) environment override
-    env = os.environ.get("BLENJS_SCHEMA")
-    if env and os.path.isfile(env):
-        return env
-    here = os.path.dirname(__file__)
-    # 3) bundled copy next to the add-on (zip distribution)
-    local = os.path.join(here, "components.schema.json")
-    if os.path.isfile(local):
-        return local
-    # 4) repo-relative (dev: add-on loaded straight from the repo)
-    repo = os.path.abspath(os.path.join(here, "..", "..", "generated", "components.schema.json"))
-    if os.path.isfile(repo):
-        return repo
-    return None
 
 
 def get_schema() -> "io_json.Schema | None":
@@ -178,34 +150,56 @@ def component_active_name(component_name: str) -> str:
 # Register / unregister
 # --------------------------------------------------------------------------- #
 def register() -> None:
-    global _schema, _component_pgs, _registered_classes, _object_attrs
+    """Add-on enable: register only the static part. The schema-driven PropertyGroups are
+    built per project by ``apply_schema`` when a .blen.json is loaded."""
+    global _schema, _component_pgs, _dynamic_classes, _object_attrs
+    _schema = None
     _component_pgs = {}
-    _registered_classes = []
+    _dynamic_classes = []
     _object_attrs = []
+    # The entity-ref array element PG is static; component PGs reference it.
+    bpy.utils.register_class(BLENJS_PG_ObjectRef)
 
-    path = find_schema_path()
-    if not path:
-        print("[blenjs] components.schema.json not found. Set the path in add-on preferences.")
-        _schema = None
-        return
 
+def clear_dynamic() -> None:
+    """Tear down the per-project schema-driven PGs + per-object slots (idempotent)."""
+    global _schema, _component_pgs, _dynamic_classes, _object_attrs
+    for attr in reversed(_object_attrs):
+        if hasattr(bpy.types.Object, attr):
+            delattr(bpy.types.Object, attr)
+    _object_attrs = []
+    for cls in reversed(_dynamic_classes):
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            pass
+    _dynamic_classes = []
+    _component_pgs = {}
+    _schema = None
+
+
+def apply_schema(path: str) -> "io_json.Schema | None":
+    """(Re)build the PropertyGroups from a project's ``components.schema.json`` (``path``
+    resolved via project.py). Called when a .blen.json is loaded; safe to call repeatedly — the
+    previous project's PGs are torn down first, so re-loading after ``bun run codegen`` picks up
+    the new schema. Returns the loaded Schema, or None if the file is missing.
+
+    Identity (``blenjs_uuid``) is a plain ID-property, not a registered RNA prop (see uuids.py),
+    so it survives this register/unregister churn."""
+    clear_dynamic()
+    if not path or not os.path.isfile(path):
+        print(f"[blenjs] components.schema.json not found at {path} — run `bun run codegen`.")
+        return None
+
+    global _schema
     _schema = io_json.Schema.load(path)
     print(f"[blenjs] loaded schema v{_schema.version} from {path} ({len(_schema.components)} components)")
-
-    # The array-element PG must be registered before any component PG references it.
-    bpy.utils.register_class(BLENJS_PG_ObjectRef)
-    _registered_classes.append(BLENJS_PG_ObjectRef)
-
-    # Identity (``blenjs_uuid``) is a plain ID-property, NOT a registered RNA
-    # StringProperty — see uuids.py. Registering it here would create a second
-    # storage namespace (``obj.blenjs_uuid``) invisible to ``obj.get()``, breaking
-    # UUID round-trip. It is stamped lazily via ``ensure_uuid`` (``obj["blenjs_uuid"]``).
 
     for component in behavior_or_data_components():
         name = component["name"]
         pg = _build_property_group(component)
         bpy.utils.register_class(pg)
-        _registered_classes.append(pg)
+        _dynamic_classes.append(pg)
         _component_pgs[name] = pg
 
         slot = component_pg_name(name)
@@ -215,20 +209,12 @@ def register() -> None:
         active = component_active_name(name)
         setattr(bpy.types.Object, active, BoolProperty(name=f"Has {name}", default=False))
         _object_attrs.append(active)
+    return _schema
 
 
 def unregister() -> None:
-    global _schema
-    for attr in reversed(_object_attrs):
-        if hasattr(bpy.types.Object, attr):
-            delattr(bpy.types.Object, attr)
-    _object_attrs.clear()
-
-    for cls in reversed(_registered_classes):
-        try:
-            bpy.utils.unregister_class(cls)
-        except RuntimeError:
-            pass
-    _registered_classes.clear()
-    _component_pgs.clear()
-    _schema = None
+    clear_dynamic()
+    try:
+        bpy.utils.unregister_class(BLENJS_PG_ObjectRef)
+    except RuntimeError:
+        pass

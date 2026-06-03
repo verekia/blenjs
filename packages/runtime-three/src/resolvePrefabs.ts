@@ -3,7 +3,7 @@ import { ValidationError, type RawEntity, type RawGame } from './loadScene'
 /**
  * Prefab resolution (the layer above `loadScene`). A prefab is a *named entity
  * template* authored under `prefabs/<name>.json` and aggregated into
- * `generated/prefabs.json`. A `game.json` entity references one with the reserved
+ * `generated/prefabs.json`. A `.blen.json` entity references one with the reserved
  * `prefab` key and overrides it:
  *
  *   "5f6102bd": { "name": "coin_01", "prefab": "coin",

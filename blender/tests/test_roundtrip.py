@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The acceptance test the spec calls critical (§6, §11):
 
-    load game.json -> save untouched -> ZERO diff.
+    load .blen.json -> save untouched -> ZERO diff.
 
 If the no-op round-trip is not byte-stable, nothing downstream is trustworthy.
 This runs the *canonicalization core* of the add-on (``io_json``) outside Blender
@@ -25,7 +25,7 @@ sys.path.insert(0, ADDON)
 import io_json  # noqa: E402
 
 SCHEMA_PATH = os.path.join(ROOT, "generated", "components.schema.json")
-GAME_PATH = os.path.join(ROOT, "game.json")
+GAME_PATH = os.path.join(ROOT, "platformer.blen.json")
 
 FAIL = "\033[31m"
 OK = "\033[32m"
