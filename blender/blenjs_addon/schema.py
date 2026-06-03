@@ -65,7 +65,15 @@ class BLENJS_PG_ObjectRef(bpy.types.PropertyGroup):
     target: PointerProperty(type=bpy.types.Object, name="Target")
 
 
-def _prop_for_field(field: dict):
+def _model_src_update(self, context):
+    """``update=`` for the Model.src field — forward to scenes for the live model swap. Lazy
+    import avoids a scenes<->schema import cycle (scenes imports schema at module load)."""
+    from . import scenes
+
+    scenes.on_model_src_update(self, context)
+
+
+def _prop_for_field(field: dict, component_name: str = ""):
     t = field.get("type")
     name = field.get("name", "")
     tip = field.get("tooltip", "") or ""
@@ -124,13 +132,16 @@ def _prop_for_field(field: dict):
         return StringProperty(name=name, description=tip, default="")  # generic fallback
 
     # string / unknown
-    return StringProperty(name=name, description=tip, default=str(default) if isinstance(default, str) else "")
+    kw = dict(name=name, description=tip, default=str(default) if isinstance(default, str) else "")
+    if component_name == "Model" and name == "src":
+        kw["update"] = _model_src_update  # live model swap on edit (see scenes.on_model_src_update)
+    return StringProperty(**kw)
 
 
 def _build_property_group(component: dict) -> type:
     annotations: dict = {}
     for field in component.get("fields", []):
-        annotations[field["name"]] = _prop_for_field(field)
+        annotations[field["name"]] = _prop_for_field(field, component["name"])
         # UIList index companion for entity-ref arrays
         if field.get("type") == "array" and field.get("itemType") == "entityRef":
             annotations[f"{field['name']}_index"] = IntProperty(default=0)

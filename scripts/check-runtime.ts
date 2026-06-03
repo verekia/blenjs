@@ -55,10 +55,7 @@ assert(!!goal, 'a Goal entity exists')
 // Prefab resolution: a coin instance inherits its model + Pickup data from the prefab.
 console.log('prefab resolution:')
 const coin = entities.find(e => e.name === 'coin_01')
-assert(
-  (coin?.components.Model as { src?: string } | undefined)?.src === 'coin.glb',
-  'coin_01 inherited Model.src=coin.glb',
-)
+assert((coin?.components.Model as { src?: string } | undefined)?.src === 'coin', 'coin_01 inherited Model.src=coin')
 assert(
   (coin?.components.Pickup as { kind?: string } | undefined)?.kind === 'coin',
   'coin_01 inherited Pickup.kind=coin',

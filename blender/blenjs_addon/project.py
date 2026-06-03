@@ -34,6 +34,14 @@ def prefabs_path(root: str) -> str:
     return os.path.join(root, "generated", "prefabs.json")
 
 
+def prefabs_dir(root: str) -> str:
+    """Editable model sources: ``<root>/prefabs/<name>.blend`` (and ``<name>.json``).
+
+    A ``Model.src`` of ``"coin"`` links ``<root>/prefabs/coin.blend`` directly — the
+    add-on never touches the built ``.glb`` (that is only the web runtime's artifact)."""
+    return os.path.join(root, "prefabs")
+
+
 def assets_dir(root: str) -> str:
     for rel in ASSET_DIRS:
         d = os.path.join(root, *rel.split("/"))

@@ -174,7 +174,7 @@
           "type": "string",
           "required": false,
           "default": "",
-          "tooltip": "Asset file built into app/public/assets, e.g. coin.glb"
+          "tooltip": "Model name, e.g. \"coin\" → prefabs/coin.blend (built to /assets/coin.glb)"
         }
       ],
       "jsonSchema": {
@@ -184,7 +184,7 @@
           "src": {
             "default": "",
             "blenjs": {
-              "tooltip": "Asset file built into app/public/assets, e.g. coin.glb"
+              "tooltip": "Model name, e.g. \"coin\" → prefabs/coin.blend (built to /assets/coin.glb)"
             },
             "type": "string"
           }
@@ -194,7 +194,7 @@
         ],
         "additionalProperties": false
       },
-      "tooltip": "External mesh asset (glTF/GLB built from a .blend), resolved at runtime to /assets/<src>."
+      "tooltip": "3D model referenced by name. Blender links prefabs/<src>.blend; the runtime loads the built /assets/<src>.glb."
     },
     {
       "name": "Player",

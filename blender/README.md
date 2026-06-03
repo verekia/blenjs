@@ -51,28 +51,34 @@ After changing components or models, re-run the relevant command and re-load it.
    > differs is the Euler *order* for the same `'XYZ'` triple (three.js `Rx·Ry·Rz`
    > vs Blender `Rz·Ry·Rx`), so rotations are reconciled through matrices, not
    > copied verbatim (see `blenjs_addon/transform.py`). On the three.js side the
-   > world is rendered Z-up by setting `Object3D.DEFAULT_UP` to +Z. (glTF is Y-up by
-   > spec; lift imported models into the world with a +90° rotation about X.)
+   > world is rendered Z-up by setting `Object3D.DEFAULT_UP` to +Z. Linked prefab
+   > `.blend` sources are native Z-up, so the viewport applies no rotation correction.
 3. **Save** — **Cmd/Ctrl+S** writes canonical JSON back to the original path. Save
    is rebound to the BlenJS export operator (we don't rely on `save_pre`, which
    only fires for real `.blend` saves).
 
 ### Prefabs & models
 
-Entities that reference a **prefab** (`"prefab": "coin"`) or carry a **`Model`**
-component are visualized with their real geometry: the built glTF (`app/public/assets/
-<name>.glb`) is imported once per asset and its mesh is shared by every instance, so the
-viewport shows actual coins/enemies/etc. instead of placeholder cubes. Run **`bun run
-build:models`** first so the `.glb` files and `generated/prefabs.json` exist (both are
-committed, so after a fresh checkout they are already present).
+Entities that reference a **prefab** (`"prefab": "coin"`) or carry a **`Model`** component
+are visualized with their real geometry by **library-linking** the editable source
+`prefabs/<src>.blend` (Blender's "Link" feature) and showing it as a **collection
+instance**: the geometry lives in the external `.blend` and is only *referenced*, never
+copied into the scene, so the viewport shows actual coins/enemies/etc. instead of
+placeholder cubes. One linked holder collection (`BLENJS_SRC_<name>`) is shared by every
+instance; because the source is native Z-up, no rotation correction is applied. `Model.src`
+is a **bare name** (`"coin"` → `prefabs/coin.blend`) — the built `.glb` is only the web
+runtime's artifact and is never referenced here.
 
+- Editing a `Model`'s **`src`** in the BlenJS panel **swaps the model live**: the new
+  `.blend` is linked and re-instanced immediately.
 - A prefab instance shows its **resolved** values (prefab defaults + the instance's
   overrides) in the BlenJS panel, with a `Prefab: <name>` line. Move/rotate/scale it or
   edit a field, then Cmd/Ctrl+S — only what **differs from the prefab** is written back
-  (Transform is always per-instance). The geometry's source of truth is the prefab's
-  `.blend`, so mesh edits made here are not saved; edit `prefabs/<name>.blend` and re-run
-  `bun run build:models` instead.
-- If a `.glb` or the manifest is missing (e.g. you haven't run `build:models`), instances
+  (Transform is always per-instance). The geometry's source of truth is
+  `prefabs/<name>.blend`, edited directly — the linked viewport is WYSIWYG with it on the
+  next load (no `build:models` needed for visualization; that only refreshes the runtime
+  `.glb`).
+- If a `.blend` source (or the linking API, under headless tests) is unavailable, instances
   fall back to a placeholder empty but still round-trip their data correctly.
 
 ### Identity

@@ -36,9 +36,12 @@ export const Collider = defineComponent({
 export const Model = defineComponent({
   name: 'Model',
   category: 'Rendering',
-  tooltip: 'External mesh asset (glTF/GLB built from a .blend), resolved at runtime to /assets/<src>.',
+  tooltip:
+    '3D model referenced by name. Blender links prefabs/<src>.blend; the runtime loads the built /assets/<src>.glb.',
   schema: z.object({
-    src: meta(z.string().default(''), { tooltip: 'Asset file built into app/public/assets, e.g. coin.glb' }),
+    src: meta(z.string().default(''), {
+      tooltip: 'Model name, e.g. "coin" → prefabs/coin.blend (built to /assets/coin.glb)',
+    }),
   }),
 })
 

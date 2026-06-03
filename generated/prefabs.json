@@ -2,7 +2,7 @@
   "coin": {
     "components": {
       "Model": {
-        "src": "coin.glb"
+        "src": "coin"
       },
       "Pickup": {
         "kind": "coin",
@@ -27,7 +27,7 @@
         "health": 3
       },
       "Model": {
-        "src": "enemy.glb"
+        "src": "enemy"
       },
       "Patrol": {
         "loop": true,
@@ -46,7 +46,7 @@
   "pickup": {
     "components": {
       "Model": {
-        "src": "pickup.glb"
+        "src": "pickup"
       },
       "Pickup": {
         "kind": "gem",
@@ -65,7 +65,7 @@
   "player": {
     "components": {
       "Model": {
-        "src": "player.glb"
+        "src": "player"
       },
       "Player": {
         "jumpForce": 11,

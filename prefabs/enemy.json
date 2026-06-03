@@ -1,7 +1,7 @@
 {
   "name": "enemy",
   "components": {
-    "Model": { "src": "enemy.glb" },
+    "Model": { "src": "enemy" },
     "Transform": { "scale": [0.3, 0.3, 0.3] },
     "Enemy": { "health": 3 },
     "Damageable": { "health": 3 },

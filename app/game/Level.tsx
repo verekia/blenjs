@@ -8,10 +8,11 @@ import type { ModelData, PickupData } from '../components'
 
 const transformOf = (e: Entity) => e.components.Transform as { pos: number[]; scale?: number[] } | undefined
 
-// glTF assets are built from prefabs/*.blend into app/public/assets, served at /assets.
+// A Model's `src` is a bare name (e.g. "coin"); the runtime loads the built glTF at
+// /assets/<src>.glb (prefabs/<src>.blend → app/public/assets/<src>.glb via build:models).
 // They are exported Z-up (export_yup=False) so they drop straight into the Z-up world
 // with no rotation correction.
-const assetUrl = (src: string) => `/assets/${src}`
+const assetUrl = (src: string) => `/assets/${src}.glb`
 
 // Warm the loader cache for every prefab model so instances pop in without a waterfall.
 for (const def of Object.values(prefabsJson as Record<string, { components?: Record<string, { src?: string }> }>)) {

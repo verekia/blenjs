@@ -5,18 +5,23 @@ dropdown becomes the switcher), create an object per entity, stamp UUIDs, fill
 component PropertyGroups, and resolve entity-ref pointers in a second pass.
 
 Prefab instances (entities with a ``prefab`` key) and entities carrying a ``Model``
-component are visualized with their REAL geometry: the built glTF (app/public/assets)
-is imported once per asset and its mesh is shared by every instance. Prefab data is
-resolved (prefab defaults + per-instance overrides) so the inspector shows real values;
-on export it is diffed back to a sparse override set. The glb import is best-effort — if
-it is unavailable (headless tests) instances fall back to a placeholder while the data
-path (UUIDs, components, refs) stays intact.
+component are visualized with their REAL geometry by LIBRARY-LINKING the editable
+source ``<root>/prefabs/<src>.blend`` (Blender's "library" feature) and showing it as a
+COLLECTION INSTANCE: the geometry lives in the external .blend and is only *referenced*,
+never copied into the scene. One linked holder collection is created per asset and shared
+by every instance; the entity is an Empty that instances it. Because the source is native
+Z-up, no rotation correction is needed (unlike the old glTF import path). ``Model.src`` is
+a bare name (``"coin"`` → ``prefabs/coin.blend``); the built ``.glb`` is only the web
+runtime's artifact and is never referenced here. Prefab data is resolved (prefab defaults
++ per-instance overrides) so the inspector shows real values; on export it is diffed back
+to a sparse override set. Linking is best-effort — if the .blend (or the linking API) is
+unavailable (headless tests, fresh checkout) instances fall back to a placeholder while
+the data path (UUIDs, components, refs) stays intact.
 
 Export: walk managed scenes/objects, read the native transform + active components
 into a plain data dict, and hand it to ``io_json.canonical_json``.
 """
 
-import math
 import os
 
 import bmesh
@@ -26,11 +31,15 @@ from . import io_json, prefabs, project, schema, transform
 from .uuids import ensure_uuid
 
 UNIT_CUBE = "BLENJS_UnitCube"
+HOLDER_PREFIX = "BLENJS_SRC_"  # local collections that hold linked source objects for instancing
 
-# Imported glTF mesh datablocks (keyed by asset src) + the resolved assets directory.
-# Both reset per import_game so a rebuilt glb — and the right repo — are picked up each load.
-_model_meshes: dict = {}
-_assets_dir: "str | None" = None
+# Linked holder collections (keyed by asset src) + the resolved prefab-sources directory.
+# Both reset per import_game so a rebuilt .blend — and the right repo — are picked up each load.
+_holders: dict = {}
+_prefabs_dir: "str | None" = None
+# True while import_game is populating scenes, so the Model.src `update=` callback (live model
+# swap) stays quiet for the programmatic writes in _apply_scalars (see on_model_src_update).
+_loading: bool = False
 
 
 def _unit_cube_mesh():
@@ -45,38 +54,97 @@ def _unit_cube_mesh():
     return me
 
 
-def _load_model_mesh(src: str):
-    """Import ``<assets>/<src>`` once and return its mesh datablock (cached for this
-    import; many instances share it). Best-effort: returns ``None`` if ``bpy.ops`` or the
-    file is unavailable, so the caller falls back to a placeholder. glTF materials are
-    mesh-linked, so a shared mesh keeps the prefab's colours."""
-    if src in _model_meshes:
-        return _model_meshes[src]
-    mesh = None
-    path = os.path.join(_assets_dir or "", src)
-    try:
-        if hasattr(bpy, "ops") and os.path.isfile(path):
-            before = set(bpy.data.objects)
-            bpy.ops.import_scene.gltf(filepath=path)
-            imported = [o for o in bpy.data.objects if o not in before]
-            mesh_obj = next((o for o in imported if getattr(o, "type", None) == "MESH"), None)
-            if mesh_obj is not None:
-                mesh = mesh_obj.data
-                # The glTF importer always assumes Y-up and bakes a +90deg X rotation into
-                # the mesh to reach Blender's Z-up. Our glb is exported Z-up (export_yup=False)
-                # for the Z-up game world, so that conversion tips the model on its face here.
-                # Undo it (-90deg X) to restore the authored orientation. The game is
-                # unaffected — Three.js loads the glb verbatim, no importer in the path.
-                import mathutils
+def _model_blend_path(src: str) -> str:
+    """Absolute path to the editable source ``<prefabs>/<src>.blend`` for a bare model name
+    (``Model.src`` = ``"coin"`` -> ``.../prefabs/coin.blend``). The built ``.glb`` is never
+    referenced here — it is only the web runtime's artifact."""
+    return os.path.abspath(os.path.join(_prefabs_dir or "", src + ".blend"))
 
-                mesh.transform(mathutils.Matrix.Rotation(math.radians(-90.0), 4, "X"))
-            for o in imported:  # keep only the mesh datablock; drop the temp objects
-                bpy.data.objects.remove(o, do_unlink=True)
+
+def _link_holder(blend_path: str, asset: str):
+    """LINK every object from ``blend_path`` (read-only library data) into a fresh LOCAL
+    collection ``BLENJS_SRC_<asset>`` and return it. The holder is never added to a view layer,
+    so the source shows up ONLY through collection instances of it — its geometry is referenced,
+    not copied into the scene. Linking an object auto-pulls its mesh, material and (live)
+    modifiers, and the source is native Z-up, so no rotation correction is needed. Returns
+    ``None`` if nothing linked."""
+    name = HOLDER_PREFIX + asset
+    holder = bpy.data.collections.get(name)
+    if holder is not None:
+        return holder
+    with bpy.data.libraries.load(blend_path, link=True) as (data_from, data_to):
+        data_to.objects = list(data_from.objects)  # the source .blend holds exactly one object today
+    holder = bpy.data.collections.new(name)
+    for obj in data_to.objects:
+        if obj is not None:  # libraries.load yields None for any name it could not resolve
+            holder.objects.link(obj)
+    if not holder.objects:
+        bpy.data.collections.remove(holder)
+        return None
+    return holder
+
+
+def _holder_for(src: str):
+    """Linked holder collection for a model ``src`` (cached for this import; many instances share
+    it). Best-effort: returns ``None`` — so the caller falls back to a placeholder — if the linking
+    API is unavailable (fake bpy / headless) or the .blend is missing."""
+    if src in _holders:
+        return _holders[src]
+    holder = None
+    blend_path = _model_blend_path(src)
+    try:
+        if hasattr(bpy.data, "libraries") and os.path.isfile(blend_path):
+            holder = _link_holder(blend_path, src)
     except Exception as e:  # noqa: BLE001 — visualization is best-effort
-        print(f"[blenjs] could not import model '{src}': {e}")
-        mesh = None
-    _model_meshes[src] = mesh
-    return mesh
+        print(f"[blenjs] could not link model '{src}' from {blend_path}: {e}")
+        holder = None
+    _holders[src] = holder
+    return holder
+
+
+def _purge_holders_and_libs() -> None:
+    """Drop every linked holder collection + its linked datablocks + the source libraries, so a
+    re-import re-links fresh (a rebuilt .blend is picked up) with no ``.001`` duplicates piling up.
+    Defensive: a no-op under the fake bpy (no collections/libraries/orphans_purge)."""
+    colls = getattr(bpy.data, "collections", None)
+    if colls is not None:
+        for c in list(colls):
+            if c.name.startswith(HOLDER_PREFIX):
+                for obj in list(c.objects):
+                    bpy.data.objects.remove(obj, do_unlink=True)
+                colls.remove(c)
+    purge = getattr(bpy.data, "orphans_purge", None)
+    if callable(purge):
+        try:
+            purge(do_local_ids=False, do_linked_ids=True, do_recursive=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"[blenjs] orphans_purge skipped: {e}")
+    libs = getattr(bpy.data, "libraries", None)
+    if libs is not None:
+        # A library's user count never returns to 0 once its data is gone, so removing only when
+        # users==0 would leak; remove unconditionally (nothing references it by now).
+        for lib in list(libs):
+            try:
+                libs.remove(lib)
+            except Exception as e:  # noqa: BLE001
+                print(f"[blenjs] could not remove library {getattr(lib, 'filepath', '?')}: {e}")
+
+
+def _apply_holder(obj, holder) -> None:
+    """Turn ``obj`` into a collection instance of the linked ``holder`` (the model's geometry,
+    referenced from its .blend). The instanced geometry is the visual, so the empty's own axes
+    cross is hidden."""
+    obj.instance_type = "COLLECTION"
+    obj.instance_collection = holder
+    obj.empty_display_size = 0.0
+
+
+def _clear_holder(obj) -> None:
+    """Drop ``obj``'s collection instance and restore the empty marker (model missing/cleared)."""
+    obj.instance_collection = None
+    obj.instance_type = "NONE"
+    obj.empty_display_type = "PLAIN_AXES"
+    obj.empty_display_size = 0.4
 
 
 def _ref_fields(component: dict):
@@ -107,13 +175,16 @@ def _create_object(uuid: str, ent: dict, scene, sch: "io_json.Schema", prefab_na
     ``prefab_name`` is set for prefab instances so export can re-sparsify."""
     name = ent.get("name", uuid)
 
-    # Geometry: a Model asset's mesh (prefab or single-use) > a Collider's unit cube > empty.
-    mesh = _load_model_mesh(_model_src(ent)) if _model_src(ent) else None
-    if mesh is None and "Collider" in ent:
-        mesh = _unit_cube_mesh()
+    # Geometry: a Model asset (prefab or single-use) renders as a linked-collection INSTANCE
+    # (the .blend is referenced, not copied) > a Collider's unit cube > an empty marker.
+    src = _model_src(ent)
+    holder = _holder_for(src) if src else None
+    mesh = _unit_cube_mesh() if holder is None and "Collider" in ent else None
 
     obj = bpy.data.objects.new(name, mesh)
-    if obj.data is None:  # empty (marker / model unavailable)
+    if holder is not None:  # instance the linked source — geometry stays in the .blend
+        _apply_holder(obj, holder)
+    elif obj.data is None:  # empty (marker / model unavailable)
         obj.empty_display_type = "PLAIN_AXES"
         obj.empty_display_size = 0.4
     scene.collection.objects.link(obj)
@@ -201,15 +272,15 @@ def _clear_managed(scene):
         if obj.get("blenjs_uuid"):
             data = obj.data
             bpy.data.objects.remove(obj, do_unlink=True)
-            # remove orphan mesh (the shared unit cube is kept; imported model meshes drop
-            # once their last instance is gone, so a rebuilt glb re-imports cleanly).
+            # remove orphan mesh (the shared unit cube is kept). Model entities are instance
+            # empties (no mesh); linked source geometry is purged via _purge_holders_and_libs.
             if data is not None and data.name != UNIT_CUBE and data.users == 0:
                 bpy.data.meshes.remove(data)
 
 
 def import_game(filepath: str, context) -> str:
     # A BlenJS project root is the folder containing the .blen.json; the schema, prefab
-    # manifest, and model assets are all resolved from there (see project.py).
+    # manifest, and model sources (prefabs/*.blend) are all resolved from there (see project.py).
     root = project.root_of(filepath)
     sch = schema.apply_schema(project.schema_path(root))  # (re)builds PGs for THIS project
     if sch is None:
@@ -220,9 +291,10 @@ def import_game(filepath: str, context) -> str:
 
     data = io_json.load_file(filepath)
     prefabs.load(project.prefabs_path(root))
-    global _assets_dir
-    _assets_dir = project.assets_dir(root)
-    _model_meshes.clear()  # re-import glTF fresh each load (picks up rebuilt assets)
+    global _prefabs_dir, _loading
+    _prefabs_dir = project.prefabs_dir(root)
+    _purge_holders_and_libs()  # drop the previous import's linked libraries/holders first
+    _holders.clear()  # re-link fresh each load (picks up a rebuilt .blend)
 
     wm = getattr(context, "window_manager", None)
     if wm is not None:  # absent under --background; harmless to skip the Cmd/Ctrl+S stash
@@ -230,35 +302,66 @@ def import_game(filepath: str, context) -> str:
 
     scenes_data = data.get("scenes") or {}
     first_scene = None
-    for sname, sbody in scenes_data.items():
-        sc = bpy.data.scenes.get(sname)
-        if sc is None:
-            sc = bpy.data.scenes.new(sname)
-        sc.blenjs_managed = True
-        _clear_managed(sc)
+    _loading = True  # quiet the Model.src live-swap callback while fields are set programmatically
+    try:
+        for sname, sbody in scenes_data.items():
+            sc = bpy.data.scenes.get(sname)
+            if sc is None:
+                sc = bpy.data.scenes.new(sname)
+            sc.blenjs_managed = True
+            _clear_managed(sc)
 
-        ents = (sbody or {}).get("entities") or {}
-        resolved = {uuid: _resolved_body(uuid, ent or {}) for uuid, ent in ents.items()}
-        uuid_to_obj = {}
-        for uuid, (body, prefab_name) in resolved.items():
-            uuid_to_obj[uuid] = _create_object(uuid, body, sc, sch, prefab_name)
-        for uuid, (body, _prefab_name) in resolved.items():
-            _apply_refs(uuid_to_obj[uuid], body, uuid_to_obj, sch)
+            ents = (sbody or {}).get("entities") or {}
+            resolved = {uuid: _resolved_body(uuid, ent or {}) for uuid, ent in ents.items()}
+            uuid_to_obj = {}
+            for uuid, (body, prefab_name) in resolved.items():
+                uuid_to_obj[uuid] = _create_object(uuid, body, sc, sch, prefab_name)
+            for uuid, (body, _prefab_name) in resolved.items():
+                _apply_refs(uuid_to_obj[uuid], body, uuid_to_obj, sch)
 
-        if first_scene is None:
-            first_scene = sc
+            if first_scene is None:
+                first_scene = sc
+    finally:
+        _loading = False
 
-    loaded = [s for s, m in _model_meshes.items() if m is not None]
-    missing = [s for s, m in _model_meshes.items() if m is None]
+    linked = [s for s, h in _holders.items() if h is not None]
+    missing = [s for s, h in _holders.items() if h is None]
     if missing:
-        print(f"[blenjs] {len(loaded)} model(s) loaded; MISSING {missing} in {_assets_dir} — run `bun run build:models`")
-    elif loaded:
-        print(f"[blenjs] {len(loaded)} model(s) loaded from {_assets_dir}")
+        print(f"[blenjs] {len(linked)} model(s) linked; MISSING {missing} — no .blend in {_prefabs_dir}")
+    elif linked:
+        print(f"[blenjs] {len(linked)} model(s) linked from {_prefabs_dir}")
 
     win = getattr(context, "window", None)
     if first_scene is not None and win is not None:  # no window under --background
         win.scene = first_scene
     return filepath
+
+
+def on_model_src_update(pg, context) -> None:
+    """``update=`` callback for the ``Model.src`` field (wired in schema.py): re-link the new
+    source and swap the entity's collection instance LIVE, so renaming the model in the inspector
+    immediately changes the model in the viewport. A no-op during an import (``_loading``), when
+    the field is set programmatically, and best-effort otherwise."""
+    global _prefabs_dir
+    if _loading:
+        return
+    obj = getattr(pg, "id_data", None)  # the Object that owns this Model PropertyGroup
+    if not isinstance(obj, bpy.types.Object) or not obj.get("blenjs_uuid"):
+        return
+    wm = getattr(bpy.context, "window_manager", None)
+    fp = getattr(wm, "blenjs_filepath", "") if wm is not None else ""
+    if not fp:  # no project path known (never imported) — nothing to resolve sources against
+        return
+    try:
+        _prefabs_dir = project.prefabs_dir(project.root_of(fp))
+        src = pg.src
+        holder = _holder_for(src) if src else None
+        if holder is not None:
+            _apply_holder(obj, holder)
+        else:
+            _clear_holder(obj)
+    except Exception as e:  # noqa: BLE001 — live visualization is best-effort
+        print(f"[blenjs] could not swap model to '{getattr(pg, 'src', '')}': {e}")
 
 
 # --------------------------------------------------------------------------- #

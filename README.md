@@ -125,14 +125,18 @@ A **prefab** is a reusable, model-backed entity authored once and stamped many t
 It is two committed files under `prefabs/`:
 
 - `coin.json` — the **data**: a `components` map (defaults), including a `Model`
-  component that points at the geometry (`{"Model": {"src": "coin.glb"}}`).
+  component that names the model (`{"Model": {"src": "coin"}}`).
 - `coin.blend` — the **editable model source**.
 
-`bun run build:models` runs Blender headless to (1) export each `prefabs/*.blend` →
-`app/public/assets/<name>.glb` (modifiers applied, kept **Z-up** so it drops into the
+In **Blender**, a `Model` is visualized by _library-linking_ `prefabs/<src>.blend` directly
+(shown as a collection instance — geometry referenced, never copied into the scene), so
+authoring is WYSIWYG with the `.blend` and only ever names the model. For the **web
+runtime**, `bun run build:models` runs Blender headless to (1) export each `prefabs/*.blend`
+→ `app/public/assets/<name>.glb` (modifiers applied, kept **Z-up** so it drops into the
 game's Z-up world with no rotation) and (2) aggregate `prefabs/*.json` →
-`generated/prefabs.json`. Both outputs are committed, so the web build never needs
-Blender. Re-run it whenever a prefab's `.blend` or `.json` changes.
+`generated/prefabs.json`. Both outputs are committed, so the web build never needs Blender.
+Re-run it whenever a prefab's `.blend` or `.json` changes (`.glb` is purely the runtime
+artifact).
 
 A `.blen.json` entity references a prefab with the reserved `prefab` key and overrides
 **Transform + individual component fields** (`Model` itself is the single-use primitive —
@@ -146,7 +150,7 @@ an entity may carry a bare `Model` with no prefab):
 
 Prefab + overrides are merged at load (`@blenjs/runtime-three`'s `resolvePrefabs`,
 before Zod) so editing a prefab updates every instance. In **Blender** the same merge
-drives visualization — instances show the real glTF mesh — and saving (Cmd/Ctrl+S)
+drives visualization — instances show the linked `.blend` geometry — and saving (Cmd/Ctrl+S)
 writes each instance back **sparsely**: only the fields that differ from the prefab.
 
 ## Library organization
