@@ -72,23 +72,19 @@ def main() -> int:
     # reverse entity order
     messy["scenes"]["level1"]["entities"] = {k: ents[k] for k in reversed(list(ents.keys()))}
     ents = messy["scenes"]["level1"]["entities"]
-    # drop default fields that must be refilled
+    # drop default fields on PLAIN entities that must be refilled
     del ents["0a10c0de"]["Transform"]["rot"]
     del ents["91b2c6f1"]["Transform"]["scale"]
-    ents["81a2c5e0"]["Patrol"].pop("loop", None)
-    ents["81a2c5e0"]["Patrol"].pop("speed", None)
     # whole-number floats (9 -> 9.0) and a long-tail float must quantize
     ents["0a10c0de"]["Transform"]["pos"] = [9.0, 0.0, 0.0]
     ents["3d40f30b"]["Transform"]["pos"] = [15.00001, 0.0, 2.5]
-    # reorder components within an entity (Enemy before Damageable)
-    e = ents["81a2c5e0"]
-    ents["81a2c5e0"] = {
-        "Enemy": e["Enemy"],
-        "Patrol": e["Patrol"],
-        "name": e["name"],
-        "Damageable": e["Damageable"],
-        "Transform": e["Transform"],
-    }
+    # reorder keys within a PLAIN entity (Collider before name/Transform -> name first)
+    g = ents["0a10c0de"]
+    ents["0a10c0de"] = {"Collider": g["Collider"], "name": g["name"], "Transform": g["Transform"]}
+    # reorder keys within a PREFAB INSTANCE: name/prefab/Transform/overrides must re-sort,
+    # and sparse overrides must NOT gain default fields (Patrol.speed/loop stay inherited).
+    en = ents["81a2c5e0"]
+    ents["81a2c5e0"] = {"Patrol": en["Patrol"], "Transform": en["Transform"], "prefab": en["prefab"], "name": en["name"]}
     messy_out = io_json.canonical_json(messy, schema)
     if messy_out == original:
         print(f"{OK}PASS{END} messy input normalizes to canonical bytes")

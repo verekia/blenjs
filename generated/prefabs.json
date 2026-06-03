@@ -1,0 +1,84 @@
+{
+  "coin": {
+    "components": {
+      "Model": {
+        "src": "coin.glb"
+      },
+      "Pickup": {
+        "kind": "coin",
+        "value": 10
+      },
+      "Transform": {
+        "scale": [
+          0.3,
+          0.3,
+          0.3
+        ]
+      }
+    },
+    "name": "coin"
+  },
+  "enemy": {
+    "components": {
+      "Damageable": {
+        "health": 3
+      },
+      "Enemy": {
+        "health": 3
+      },
+      "Model": {
+        "src": "enemy.glb"
+      },
+      "Patrol": {
+        "loop": true,
+        "speed": 2
+      },
+      "Transform": {
+        "scale": [
+          0.3,
+          0.3,
+          0.3
+        ]
+      }
+    },
+    "name": "enemy"
+  },
+  "pickup": {
+    "components": {
+      "Model": {
+        "src": "pickup.glb"
+      },
+      "Pickup": {
+        "kind": "gem",
+        "value": 25
+      },
+      "Transform": {
+        "scale": [
+          0.25,
+          0.25,
+          0.25
+        ]
+      }
+    },
+    "name": "pickup"
+  },
+  "player": {
+    "components": {
+      "Model": {
+        "src": "player.glb"
+      },
+      "Player": {
+        "jumpForce": 11,
+        "moveSpeed": 6
+      },
+      "Transform": {
+        "scale": [
+          0.33,
+          0.33,
+          0.33
+        ]
+      }
+    },
+    "name": "player"
+  }
+}

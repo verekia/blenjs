@@ -12,8 +12,10 @@ Blender, with R3F as the runtime.
 
 ## Principles (do not violate)
 
-1. **JSON is the single source of truth.** `.blend` files are never saved or
-   committed — Blender is a stateless view that loads JSON and writes JSON back.
+1. **JSON is the single source of truth** for _levels_. Level/scene `.blend` files are
+   never saved or committed — Blender is a stateless view that loads JSON and writes JSON
+   back. Reusable **prefab/model art** is the one deliberate exception: `prefabs/*.blend`
+   are committed sources, built into committed `*.glb` (see [Prefabs & models](#prefabs--models)).
 2. **The TS component registry is the schema authority.** It generates
    `components.schema.json`, which Blender's Python reads to build its UI.
 3. **Components and behaviors are one concept.** A component is typed data; a
@@ -30,21 +32,26 @@ Blender, with R3F as the runtime.
 ```
 blenjs/
   game.json                      # all scenes — THE source of truth (committed)
+  prefabs/                       # reusable prefab/model art (committed)
+    coin.json coin.blend         #   data (components + defaults) + editable model source
+    …                            #   pickup, enemy, player
   generated/
     components.schema.json       # codegen output — committed (Blender reads it)
+    prefabs.json                 # aggregated prefab manifest — committed (runtime + Blender read it)
   packages/
     core/          # defineComponent + Zod registry. NO three/react/blender.
     codegen/       # registry -> components.schema.json (Node-only)
-    runtime-three/ # JSON -> validated data -> entities + UUID refs (headless)
+    runtime-three/ # JSON -> resolvePrefabs -> validated data -> entities + UUID refs (headless)
     runtime-r3f/   # React/R3F WebGPU layer: Level, ModelContainer, system ticker
   app/             # the Next.js platformer (application content)
-    components.ts   #   the game vocabulary (the registry)
+    components.ts   #   the game vocabulary (the registry, incl. the Model component)
     systems/        #   playerController, patrol, pickup, shoot, goal
-    game/           #   canvas, Level renderer, HUD, Zustand store
+    game/           #   canvas, Level renderer (glTF via useGLTF), HUD, Zustand store
+    public/assets/  #   built *.glb (committed; served at /assets, copied to the export)
     pages/          #   Next.js (pages router, static export)
   blender/
     blenjs_addon/  # the Blender add-on (Python) — see blender/README.md
-    tests/ tools/  # round-trip tests + addon packager
+    tests/ tools/  # round-trip tests + addon/asset packagers (build_assets.py)
   scripts/         # codegen, watch (dev loop), runtime smoke test
 ```
 
@@ -92,7 +99,8 @@ generated/components.schema.json ───────────────�
 game.json  ◄──────────────────────── the single source of truth ──────────────────
         │  imported as a module (bundled; HMR on save)
         ▼
-loadScene → Zod-validate each component → resolveRefs (UUID map)
+resolvePrefabs (merge prefab defaults + overrides) → loadScene (Zod) → resolveRefs (UUID map)
+        │      ▲ generated/prefabs.json + app/public/assets/*.glb  ◄── bun run build:models (prefabs/*.blend)
         │
         ▼
 Zustand store (designed entities + runtime player) ── systems tick in one useFrame
@@ -106,11 +114,41 @@ component on which entity_ failed.
 
 ## The example game
 
-`game.json` ships a playable platformer (`level1`): box platforms (`Collider`),
-coins + a gem (`Pickup`), two patrolling enemies (`Enemy` + `Damageable` +
-`Patrol` with waypoint refs), a `PlayerSpawn`, and a `Goal`. The player is spawned
-in code at the spawn marker; bullets, score, ammo, and win/lose live only in
-Zustand — never in JSON.
+`game.json` ships a playable platformer (`level1`): box platforms (`Collider`,
+parametric blockout — no model), `coin`/`pickup`/`enemy` **prefab instances** (gold
+coins, a cyan gem, two patrolling enemies), a `PlayerSpawn`, and a `Goal`. The player
+is spawned in code at the spawn marker from the `player` prefab; bullets, score, ammo,
+and win/lose live only in Zustand — never in JSON.
+
+## Prefabs & models
+
+A **prefab** is a reusable, model-backed entity authored once and stamped many times.
+It is two committed files under `prefabs/`:
+
+- `coin.json` — the **data**: a `components` map (defaults), including a `Model`
+  component that points at the geometry (`{"Model": {"src": "coin.glb"}}`).
+- `coin.blend` — the **editable model source**.
+
+`bun run build:models` runs Blender headless to (1) export each `prefabs/*.blend` →
+`app/public/assets/<name>.glb` (modifiers applied, kept **Z-up** so it drops into the
+game's Z-up world with no rotation) and (2) aggregate `prefabs/*.json` →
+`generated/prefabs.json`. Both outputs are committed, so the web build never needs
+Blender. Re-run it whenever a prefab's `.blend` or `.json` changes.
+
+A `game.json` entity references a prefab with the reserved `prefab` key and overrides
+**Transform + individual component fields** (`Model` itself is the single-use primitive —
+an entity may carry a bare `Model` with no prefab):
+
+```jsonc
+"5f6102bd": { "name": "coin_01", "prefab": "coin",
+              "Transform": { "pos": [5, 0, 3] },  // placement; scale inherited
+              "Pickup": { "value": 50 } }         // field override; kind inherited
+```
+
+Prefab + overrides are merged at load (`@blenjs/runtime-three`'s `resolvePrefabs`,
+before Zod) so editing a prefab updates every instance. In **Blender** the same merge
+drives visualization — instances show the real glTF mesh — and saving (Cmd/Ctrl+S)
+writes each instance back **sparsely**: only the fields that differ from the prefab.
 
 ## Library organization
 
@@ -130,19 +168,20 @@ schema contract (`schemaVersion`). `game.json`, `app/components.ts`, and
 
 ## Commands
 
-| Command                  | What it does                                                   |
-| ------------------------ | -------------------------------------------------------------- |
-| `bun run codegen`        | registry → `generated/components.schema.json`                  |
-| `bun run dev`            | Next.js dev server (WebGPU)                                    |
-| `bun run build`          | codegen + Next.js static export to `app/out`                   |
-| `bun run watch`          | regenerates `components.schema.json` when the registry changes |
-| `bun run typecheck`      | `tsc --noEmit` across all workspaces                           |
-| `bun run gen:json`       | regenerate the canonical `game.json` from the level builder    |
-| `bun run test:roundtrip` | the zero-diff JSON round-trip acceptance test                  |
-| `bunx oxfmt .`           | format (matches the reference repo's config)                   |
-| `bunx oxlint .`          | lint                                                           |
-| `bun run warden`         | repo config/version consistency check (`@verekia/warden`)      |
-| `bun run all`            | format:check + lint + typecheck + warden — the CI gate         |
+| Command                  | What it does                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------ |
+| `bun run codegen`        | registry → `generated/components.schema.json`                                              |
+| `bun run build:models`   | Blender headless: `prefabs/*.blend` → `app/public/assets/*.glb` + `generated/prefabs.json` |
+| `bun run dev`            | Next.js dev server (WebGPU)                                                                |
+| `bun run build`          | codegen + Next.js static export to `app/out`                                               |
+| `bun run watch`          | regenerates `components.schema.json` when the registry changes                             |
+| `bun run typecheck`      | `tsc --noEmit` across all workspaces                                                       |
+| `bun run gen:json`       | regenerate the canonical `game.json` from the level builder                                |
+| `bun run test:roundtrip` | the zero-diff JSON round-trip acceptance test                                              |
+| `bunx oxfmt .`           | format (matches the reference repo's config)                                               |
+| `bunx oxlint .`          | lint                                                                                       |
+| `bun run warden`         | repo config/version consistency check (`@verekia/warden`)                                  |
+| `bun run all`            | format:check + lint + typecheck + warden — the CI gate                                     |
 
 ## Verification
 

@@ -7,9 +7,12 @@ next-env.d.ts
 .DS_Store
 *.log
 
-# Blender authors JSON; .blend files are never committed (principle #1).
+# Blender authors level JSON; level/scene .blend files are never committed (principle #1).
+# Exception: prefab/model ART sources under prefabs/ ARE committed (the editable source for
+# the built glTF in app/public/assets). Autosave backups (*.blend1) are never committed.
 *.blend
 *.blend1
+!prefabs/*.blend
 
 # Python
 __pycache__/

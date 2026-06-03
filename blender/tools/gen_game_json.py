@@ -31,36 +31,35 @@ def transform(pos, scale=None):
 
 
 # A small, fully playable level laid out in the XZ plane (X horizontal, Z up, Y
-# depth) — Z-up right-handed, the same frame as Blender. Coins reward platforming;
-# the goal sits on the ground so the level is always completable. UUID keys are
-# stable identity (never names).
+# depth) — Z-up right-handed, the same frame as Blender. Platforms stay parametric
+# boxes (Collider, no model); coins/gem/enemies are PREFAB INSTANCES (model + data
+# from prefabs/<name>.json) carrying only their per-instance overrides. The goal sits
+# on the ground so the level is always completable. UUID keys are stable identity.
 LEVEL1 = {
-    # --- solid blockout geometry (parametric boxes, no .glb) ---
+    # --- solid blockout geometry (parametric boxes, no model) ---
     "0a10c0de": {"name": "ground", "Transform": transform([9, 0, 0], [24, 4, 1]), "Collider": {"shape": "box"}},
     "1b20d1ef": {"name": "platform_a", "Transform": transform([5, 0, 2], [3, 3, 0.5]), "Collider": {"shape": "box"}},
     "2c30e2fa": {"name": "platform_b", "Transform": transform([10, 0, 3.5], [3, 3, 0.5]), "Collider": {"shape": "box"}},
     "3d40f30b": {"name": "platform_c", "Transform": transform([15, 0, 2.5], [3, 3, 0.5]), "Collider": {"shape": "box"}},
-    # --- collectibles ---
-    "4e5101ac": {"name": "gem_01", "Transform": transform([2, 0, 1.3]), "Pickup": {"kind": "gem", "value": 25}},
-    "5f6102bd": {"name": "coin_01", "Transform": transform([5, 0, 3]), "Pickup": {"kind": "coin", "value": 10}},
-    "6071a3ce": {"name": "coin_02", "Transform": transform([10, 0, 4.6]), "Pickup": {"kind": "coin", "value": 10}},
-    "7182b4df": {"name": "coin_03", "Transform": transform([15, 0, 3.5]), "Pickup": {"kind": "coin", "value": 10}},
-    # --- enemy 1: patrols the ground between two waypoints ---
+    # --- collectibles (prefab instances; kind/value/scale/model inherited) ---
+    "4e5101ac": {"name": "gem_01", "prefab": "pickup", "Transform": transform([2, 0, 1.3])},
+    "5f6102bd": {"name": "coin_01", "prefab": "coin", "Transform": transform([5, 0, 3])},
+    "6071a3ce": {"name": "coin_02", "prefab": "coin", "Transform": transform([10, 0, 4.6])},
+    "7182b4df": {"name": "coin_03", "prefab": "coin", "Transform": transform([15, 0, 3.5])},
+    # --- enemy 1: prefab instance; waypoints are a required per-instance override ---
     "81a2c5e0": {
         "name": "enemy_01",
+        "prefab": "enemy",
         "Transform": transform([7, 0, 0.9]),
-        "Enemy": {"health": 3},
-        "Damageable": {"health": 3},
         "Patrol": {"waypoints": ["91b2c6f1", "a1c2d7e2"]},
     },
     "91b2c6f1": {"name": "wp_a1", "Transform": transform([4, 0, 0.9])},
     "a1c2d7e2": {"name": "wp_a2", "Transform": transform([10, 0, 0.9])},
-    # --- enemy 2: patrols on top of platform_b ---
+    # --- enemy 2: prefab instance; overrides patrol speed too ---
     "b1d2e8f3": {
         "name": "enemy_02",
+        "prefab": "enemy",
         "Transform": transform([10, 0, 4]),
-        "Enemy": {"health": 3},
-        "Damageable": {"health": 3},
         "Patrol": {"speed": 1.5, "waypoints": ["c1e2f9a4", "d1f20ab5"]},
     },
     "c1e2f9a4": {"name": "wp_b1", "Transform": transform([8.7, 0, 4])},

@@ -1,0 +1,8 @@
+{
+  "name": "coin",
+  "components": {
+    "Model": { "src": "coin.glb" },
+    "Transform": { "scale": [0.3, 0.3, 0.3] },
+    "Pickup": { "kind": "coin", "value": 10 }
+  }
+}

@@ -56,7 +56,9 @@ export const loadScene = (game: RawGame, sceneName: string, registry: Registry):
     const components: Record<string, Record<string, unknown>> = {}
 
     for (const key of Object.keys(raw)) {
-      if (key === 'name') continue
+      // `name` is identity; `prefab` is a template reference resolved upstream by
+      // resolvePrefabs — neither is a component. (Resolved entities have no `prefab`.)
+      if (key === 'name' || key === 'prefab') continue
       const def = getComponent(registry, key)
       if (!def) {
         errors.push(`Entity ${uuid} (${name}): unknown component "${key}" (not in registry)`)

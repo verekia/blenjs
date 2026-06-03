@@ -165,6 +165,38 @@
       "tooltip": "Solid volume. A box uses the entity Transform.scale as full size — parametric blockout, no .glb needed."
     },
     {
+      "name": "Model",
+      "category": "Rendering",
+      "hasSystem": false,
+      "fields": [
+        {
+          "name": "src",
+          "type": "string",
+          "required": false,
+          "default": "",
+          "tooltip": "Asset file built into app/public/assets, e.g. coin.glb"
+        }
+      ],
+      "jsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "src": {
+            "default": "",
+            "blenjs": {
+              "tooltip": "Asset file built into app/public/assets, e.g. coin.glb"
+            },
+            "type": "string"
+          }
+        },
+        "required": [
+          "src"
+        ],
+        "additionalProperties": false
+      },
+      "tooltip": "External mesh asset (glTF/GLB built from a .blend), resolved at runtime to /assets/<src>."
+    },
+    {
       "name": "Player",
       "category": "Gameplay",
       "hasSystem": true,

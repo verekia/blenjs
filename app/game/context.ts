@@ -1,9 +1,13 @@
 import type { Entity, Vec3 } from '@blenjs/core'
-import { loadScene, type RawGame, resolveRefs } from '@blenjs/runtime-three'
-import { Player, registry } from '../components'
+import { loadScene, type PrefabManifest, type RawGame, resolvePrefabs, resolveRefs } from '@blenjs/runtime-three'
+import prefabsJson from '../../generated/prefabs.json'
+import { registry } from '../components'
 import { BULLET_SPEED, BULLET_TTL } from './constants'
 import { getGame, resetGame, setGame } from './store'
 import type { GameContext } from './types'
+
+/** Prefab definitions aggregated by `bun run build:models`. */
+const prefabs = prefabsJson as PrefabManifest
 
 export const PLAYER_UUID = '__player__'
 
@@ -62,7 +66,8 @@ export const makeContext = (dt: number, elapsed: number): GameContext => {
  * entity carrying the Player component in game.json.
  */
 export const hydrateGame = (game: RawGame, sceneName = 'level1') => {
-  const { entities } = loadScene(game, sceneName, registry)
+  const resolved = resolvePrefabs(game, sceneName, prefabs) // inline prefab defaults + overrides
+  const { entities } = loadScene(resolved, sceneName, registry)
   resolveRefs(entities, registry) // throws (naming entity + field) if a ref dangles
 
   const map: Record<string, Entity> = {}
@@ -74,17 +79,21 @@ export const hydrateGame = (game: RawGame, sceneName = 'level1') => {
     order.push(e.uuid)
   }
 
+  // The player is the emergent layer (spawned in code, not authored in game.json).
+  // Build it from the `player` prefab — same model + tuning as any instance — placed
+  // at the PlayerSpawn marker, resolved through the very same prefab+load path.
   const spawn = entities.find(e => e.components.PlayerSpawn)
   const sp = (spawn?.components.Transform as { pos: Vec3 } | undefined)?.pos ?? [0, 2, 0]
-  const player: Entity = {
-    uuid: PLAYER_UUID,
-    name: 'Player',
-    components: {
-      Transform: { pos: [sp[0], sp[1], sp[2]], rot: [0, 0, 0], scale: [1, 1, 1] },
-      Player: Player.schema.parse({}),
+  const playerGame: RawGame = {
+    version: game.version,
+    scenes: {
+      [sceneName]: {
+        entities: { [PLAYER_UUID]: { name: 'Player', prefab: 'player', Transform: { pos: [sp[0], sp[1], sp[2]] } } },
+      },
     },
-    runtime: {},
   }
+  const player = loadScene(resolvePrefabs(playerGame, sceneName, prefabs), sceneName, registry).entities[0]
+  player.runtime = {}
   map[player.uuid] = player
   order.push(player.uuid)
 

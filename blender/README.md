@@ -16,7 +16,8 @@ you loaded. No `.blend` is ever saved — Blender is a stateless view over the J
 
 ```bash
 bun run codegen                       # writes generated/components.schema.json
-python3 blender/tools/build_addon.py  # writes blender/dist/blenjs_addon.zip (schema bundled)
+bun run build:models                  # writes generated/prefabs.json + app/public/assets/*.glb
+python3 blender/tools/build_addon.py  # writes blender/dist/blenjs_addon.zip (schema + prefabs bundled)
 ```
 
 Then in Blender: **Edit ▸ Preferences ▸ Add-ons ▸ Install from Disk…** and pick
@@ -65,6 +66,24 @@ registry (`app/components.ts`).
 3. **Save** — **Cmd/Ctrl+S** writes canonical JSON back to the original path. Save
    is rebound to the BlenJS export operator (we don't rely on `save_pre`, which
    only fires for real `.blend` saves).
+
+### Prefabs & models
+
+Entities that reference a **prefab** (`"prefab": "coin"`) or carry a **`Model`**
+component are visualized with their real geometry: the built glTF (`app/public/assets/
+<name>.glb`) is imported once per asset and its mesh is shared by every instance, so the
+viewport shows actual coins/enemies/etc. instead of placeholder cubes. Run **`bun run
+build:models`** first so the `.glb` files and `generated/prefabs.json` exist (both are
+committed, so after a fresh checkout they are already present).
+
+- A prefab instance shows its **resolved** values (prefab defaults + the instance's
+  overrides) in the BlenJS panel, with a `Prefab: <name>` line. Move/rotate/scale it or
+  edit a field, then Cmd/Ctrl+S — only what **differs from the prefab** is written back
+  (Transform is always per-instance). The geometry's source of truth is the prefab's
+  `.blend`, so mesh edits made here are not saved; edit `prefabs/<name>.blend` and re-run
+  `bun run build:models` instead.
+- If a `.glb` or the manifest is missing (e.g. you haven't run `build:models`), instances
+  fall back to a placeholder empty but still round-trip their data correctly.
 
 ### Identity
 

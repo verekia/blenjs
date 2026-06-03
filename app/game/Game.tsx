@@ -1,7 +1,7 @@
 import { Level } from '@blenjs/runtime-r3f'
 import type { RawGame } from '@blenjs/runtime-three'
 import { Canvas } from '@react-three/fiber/webgpu'
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Object3D } from 'three'
 import gameData from '../../game.json'
 import { Bullets } from './Bullets'
@@ -16,8 +16,8 @@ import { GameSystems } from './Systems'
 // Y depth, Z up. three.js has no hardcoded world up — it only reads `Object3D.up`
 // for `lookAt()` and controls — so we point the default up at +Z before any
 // camera is created. The renderer is unaffected; only orientation math is.
-// (glTF models are Y-up by spec: wrap them in a group with rotation.x = +90° to
-// lift them into this Z-up world when model loading is added.)
+// (Models are exported Z-up — `build_assets.py` uses export_yup=False — so loaded glTF
+// drops straight into this Z-up world with no rotation correction.)
 Object3D.DEFAULT_UP.set(0, 0, 1)
 
 const World = () => {
@@ -26,7 +26,14 @@ const World = () => {
   const list = order.map(id => entities[id]).filter(Boolean)
   return (
     <>
-      <Level entities={list} renderEntity={renderEntity} />
+      {/* glTF materials are lit (PBR) — without lights they render black. The basic-material
+          primitives (platforms, goal) are unaffected by these. */}
+      <ambientLight intensity={0.9} />
+      <directionalLight position={[6, -10, 12]} intensity={2} />
+      {/* useGLTF suspends until each model loads; systems/bullets keep running outside. */}
+      <Suspense fallback={null}>
+        <Level entities={list} renderEntity={renderEntity} />
+      </Suspense>
       <Bullets />
       <GameSystems />
     </>

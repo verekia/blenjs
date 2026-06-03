@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "codegen": "bun run scripts/codegen.ts",
+    "build:models": "blender --background --factory-startup --python blender/tools/build_assets.py",
     "gen:json": "python3 blender/tools/gen_game_json.py",
     "test:roundtrip": "python3 blender/tests/test_roundtrip.py",
     "watch": "bun run scripts/watch.ts",

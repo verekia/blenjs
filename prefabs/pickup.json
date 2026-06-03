@@ -1,0 +1,8 @@
+{
+  "name": "pickup",
+  "components": {
+    "Model": { "src": "pickup.glb" },
+    "Transform": { "scale": [0.25, 0.25, 0.25] },
+    "Pickup": { "kind": "gem", "value": 25 }
+  }
+}

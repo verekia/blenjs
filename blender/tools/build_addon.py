@@ -15,6 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 ADDON_SRC = os.path.join(ROOT, "blender", "blenjs_addon")
 SCHEMA = os.path.join(ROOT, "generated", "components.schema.json")
+PREFABS = os.path.join(ROOT, "generated", "prefabs.json")
 DIST = os.path.join(ROOT, "blender", "dist")
 OUT = os.path.join(DIST, "blenjs_addon.zip")
 
@@ -39,6 +40,9 @@ def main():
                 z.write(abs_path, rel)
         # bundle the schema inside the add-on package
         z.write(SCHEMA, os.path.join("blenjs_addon", "components.schema.json"))
+        # bundle the prefab manifest too, so prefab instances resolve when zip-installed
+        if os.path.isfile(PREFABS):
+            z.write(PREFABS, os.path.join("blenjs_addon", "prefabs.json"))
 
     print(f"✓ wrote {OUT}")
     print("  Install in Blender: Edit > Preferences > Add-ons > Install from Disk… > select this zip.")

@@ -33,6 +33,15 @@ export const Collider = defineComponent({
   }),
 })
 
+export const Model = defineComponent({
+  name: 'Model',
+  category: 'Rendering',
+  tooltip: 'External mesh asset (glTF/GLB built from a .blend), resolved at runtime to /assets/<src>.',
+  schema: z.object({
+    src: meta(z.string().default(''), { tooltip: 'Asset file built into app/public/assets, e.g. coin.glb' }),
+  }),
+})
+
 export const Player = defineComponent({
   name: 'Player',
   category: 'Gameplay',
@@ -112,6 +121,7 @@ export const Goal = defineComponent({
 export const registry = defineRegistry([
   Transform,
   Collider,
+  Model,
   Player,
   PlayerSpawn,
   Pickup,
@@ -124,6 +134,7 @@ export const registry = defineRegistry([
 // Convenience runtime types inferred from the schemas.
 export type TransformData = z.infer<typeof Transform.schema>
 export type ColliderData = z.infer<typeof Collider.schema>
+export type ModelData = z.infer<typeof Model.schema>
 export type PlayerData = z.infer<typeof Player.schema>
 export type PickupData = z.infer<typeof Pickup.schema>
 export type EnemyData = z.infer<typeof Enemy.schema>

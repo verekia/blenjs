@@ -4,19 +4,33 @@ Import: load JSON, create one Blender Scene per game scene (the native scene
 dropdown becomes the switcher), create an object per entity, stamp UUIDs, fill
 component PropertyGroups, and resolve entity-ref pointers in a second pass.
 
-Export: walk managed scenes/objects, read the native transform + active
-components into a plain data dict, and hand it to ``io_json.canonical_json``.
+Prefab instances (entities with a ``prefab`` key) and entities carrying a ``Model``
+component are visualized with their REAL geometry: the built glTF (app/public/assets)
+is imported once per asset and its mesh is shared by every instance. Prefab data is
+resolved (prefab defaults + per-instance overrides) so the inspector shows real values;
+on export it is diffed back to a sparse override set. The glb import is best-effort — if
+it is unavailable (headless tests) instances fall back to a placeholder while the data
+path (UUIDs, components, refs) stays intact.
+
+Export: walk managed scenes/objects, read the native transform + active components
+into a plain data dict, and hand it to ``io_json.canonical_json``.
 """
 
+import math
 import os
 
 import bmesh
 import bpy
 
-from . import io_json, schema, transform
+from . import io_json, prefabs, schema, transform
 from .uuids import ensure_uuid
 
 UNIT_CUBE = "BLENJS_UnitCube"
+
+# Imported glTF mesh datablocks (keyed by asset src) + the resolved assets directory.
+# Both reset per import_game so a rebuilt glb — and the right repo — are picked up each load.
+_model_meshes: dict = {}
+_assets_dir: "str | None" = None
 
 
 def _unit_cube_mesh():
@@ -29,6 +43,70 @@ def _unit_cube_mesh():
     bm.to_mesh(me)
     bm.free()
     return me
+
+
+def _first_existing_file(*paths) -> "str | None":
+    for p in paths:
+        if p and os.path.isfile(p):
+            return p
+    return None
+
+
+def _resolve_assets_dir(base: str) -> str:
+    """Locate the built-glTF directory. PRIMARY: relative to the loaded game.json's folder,
+    so a *zip-installed* add-on (whose code lives in Blender's addons dir, not the repo)
+    still finds ``<repo>/app/public/assets``. Falls back to ``$BLENJS_ASSETS`` and the
+    repo-relative dev path next to the add-on."""
+    candidates = []
+    env = os.environ.get("BLENJS_ASSETS")
+    if env:
+        candidates.append(env)
+    candidates += [
+        os.path.join(base, "app", "public", "assets"),
+        os.path.join(base, "public", "assets"),
+        os.path.join(base, "assets"),
+    ]
+    here = os.path.dirname(__file__)
+    candidates.append(os.path.abspath(os.path.join(here, "..", "..", "app", "public", "assets")))  # dev: from repo
+    candidates.append(here)  # glbs bundled next to the add-on (if ever)
+    for c in candidates:
+        if c and os.path.isdir(c):
+            return c
+    return base
+
+
+def _load_model_mesh(src: str):
+    """Import ``<assets>/<src>`` once and return its mesh datablock (cached for this
+    import; many instances share it). Best-effort: returns ``None`` if ``bpy.ops`` or the
+    file is unavailable, so the caller falls back to a placeholder. glTF materials are
+    mesh-linked, so a shared mesh keeps the prefab's colours."""
+    if src in _model_meshes:
+        return _model_meshes[src]
+    mesh = None
+    path = os.path.join(_assets_dir or "", src)
+    try:
+        if hasattr(bpy, "ops") and os.path.isfile(path):
+            before = set(bpy.data.objects)
+            bpy.ops.import_scene.gltf(filepath=path)
+            imported = [o for o in bpy.data.objects if o not in before]
+            mesh_obj = next((o for o in imported if getattr(o, "type", None) == "MESH"), None)
+            if mesh_obj is not None:
+                mesh = mesh_obj.data
+                # The glTF importer always assumes Y-up and bakes a +90deg X rotation into
+                # the mesh to reach Blender's Z-up. Our glb is exported Z-up (export_yup=False)
+                # for the Z-up game world, so that conversion tips the model on its face here.
+                # Undo it (-90deg X) to restore the authored orientation. The game is
+                # unaffected — Three.js loads the glb verbatim, no importer in the path.
+                import mathutils
+
+                mesh.transform(mathutils.Matrix.Rotation(math.radians(-90.0), 4, "X"))
+            for o in imported:  # keep only the mesh datablock; drop the temp objects
+                bpy.data.objects.remove(o, do_unlink=True)
+    except Exception as e:  # noqa: BLE001 — visualization is best-effort
+        print(f"[blenjs] could not import model '{src}': {e}")
+        mesh = None
+    _model_meshes[src] = mesh
+    return mesh
 
 
 def _ref_fields(component: dict):
@@ -45,26 +123,46 @@ def _ref_fields(component: dict):
 # --------------------------------------------------------------------------- #
 # Import
 # --------------------------------------------------------------------------- #
-def _create_object(uuid: str, ent: dict, scene, sch: "io_json.Schema"):
+def _model_src(ent: dict) -> "str | None":
+    model = ent.get("Model")
+    if isinstance(model, dict):
+        src = model.get("src")
+        if isinstance(src, str) and src:
+            return src
+    return None
+
+
+def _create_object(uuid: str, ent: dict, scene, sch: "io_json.Schema", prefab_name: "str | None"):
+    """``ent`` is the RESOLVED entity body (prefab defaults + overrides already merged);
+    ``prefab_name`` is set for prefab instances so export can re-sparsify."""
     name = ent.get("name", uuid)
-    obj = bpy.data.objects.new(name, _unit_cube_mesh() if "Collider" in ent else None)
-    if obj.data is None:  # empty
+
+    # Geometry: a Model asset's mesh (prefab or single-use) > a Collider's unit cube > empty.
+    mesh = _load_model_mesh(_model_src(ent)) if _model_src(ent) else None
+    if mesh is None and "Collider" in ent:
+        mesh = _unit_cube_mesh()
+
+    obj = bpy.data.objects.new(name, mesh)
+    if obj.data is None:  # empty (marker / model unavailable)
         obj.empty_display_type = "PLAIN_AXES"
         obj.empty_display_size = 0.4
     scene.collection.objects.link(obj)
     obj["blenjs_uuid"] = uuid  # ID-property — the one namespace ensure_uuid reads (see uuids.py)
+    if prefab_name:
+        obj["blenjs_prefab"] = prefab_name  # remembered so export re-sparsifies overrides
 
-    # Native transform — convert the Y-up game frame into Blender's Z-up frame so
-    # the level stands upright in the viewport (see transform.py).
+    # Native transform — convert the game frame into Blender's frame (see transform.py).
     t = ent.get("Transform") or {}
-    pos, rot, scale = transform.game_to_blender(t.get("pos"), t.get("rot"), t.get("scale"))
+    pos, rot, scale = transform.game_to_blender(
+        t.get("pos") or [0, 0, 0], t.get("rot") or [0, 0, 0], t.get("scale") or [1, 1, 1]
+    )
     obj.location = tuple(pos)
     obj.rotation_euler = tuple(rot)
     obj.scale = tuple(scale)
 
     # Scalar component fields (refs handled in pass 2).
     for comp_name, comp_data in ent.items():
-        if comp_name in ("name", "Transform") or not sch.has(comp_name):
+        if comp_name in ("name", "Transform", "prefab") or not sch.has(comp_name):
             continue
         setattr(obj, schema.component_active_name(comp_name), True)
         pg = getattr(obj, schema.component_pg_name(comp_name))
@@ -98,7 +196,7 @@ def _apply_scalars(pg, component: dict, data: dict):
 
 def _apply_refs(obj, ent: dict, uuid_to_obj: dict, sch: "io_json.Schema"):
     for comp_name, comp_data in ent.items():
-        if comp_name in ("name", "Transform") or not sch.has(comp_name):
+        if comp_name in ("name", "Transform", "prefab") or not sch.has(comp_name):
             continue
         comp = sch.components[comp_name]
         singles, arrays = _ref_fields(comp)
@@ -117,12 +215,24 @@ def _apply_refs(obj, ent: dict, uuid_to_obj: dict, sch: "io_json.Schema"):
                 item.target = uuid_to_obj.get(ref_uuid)
 
 
+def _resolved_body(uuid: str, ent: dict) -> "tuple[dict, str | None]":
+    """Return (display body, prefab_name). For a prefab instance the body is the prefab's
+    components merged with the instance overrides; otherwise the entity is returned as-is."""
+    prefab_name = ent.get("prefab") if isinstance(ent.get("prefab"), str) and ent.get("prefab") else None
+    if prefab_name:
+        body = {"name": ent.get("name", uuid)}
+        body.update(prefabs.resolve_components(prefab_name, ent))
+        return body, prefab_name
+    return ent, None
+
+
 def _clear_managed(scene):
     for obj in list(scene.collection.all_objects):
         if obj.get("blenjs_uuid"):
             data = obj.data
             bpy.data.objects.remove(obj, do_unlink=True)
-            # remove orphan mesh (cubes are shared via UNIT_CUBE so keep that one)
+            # remove orphan mesh (the shared unit cube is kept; imported model meshes drop
+            # once their last instance is gone, so a rebuilt glb re-imports cleanly).
             if data is not None and data.name != UNIT_CUBE and data.users == 0:
                 bpy.data.meshes.remove(data)
 
@@ -133,6 +243,16 @@ def import_game(filepath: str, context) -> str:
         raise RuntimeError("BlenJS schema not loaded — set the schema path in add-on preferences.")
 
     data = io_json.load_file(filepath)
+
+    # Resolve prefab data + model assets relative to the loaded game.json's folder, so a
+    # zip-installed add-on (code lives in Blender's addons dir) still finds the repo's
+    # prefabs.json and app/public/assets — not a path relative to the add-on itself.
+    global _assets_dir
+    base = os.path.dirname(os.path.abspath(filepath))
+    prefabs.load(_first_existing_file(os.path.join(base, "generated", "prefabs.json")))  # None -> own fallbacks
+    _assets_dir = _resolve_assets_dir(base)
+    _model_meshes.clear()  # re-import glTF fresh each load (picks up rebuilt assets)
+
     wm = getattr(context, "window_manager", None)
     if wm is not None:  # absent under --background; harmless to skip the Cmd/Ctrl+S stash
         wm.blenjs_filepath = os.path.abspath(filepath)
@@ -147,14 +267,22 @@ def import_game(filepath: str, context) -> str:
         _clear_managed(sc)
 
         ents = (sbody or {}).get("entities") or {}
+        resolved = {uuid: _resolved_body(uuid, ent or {}) for uuid, ent in ents.items()}
         uuid_to_obj = {}
-        for uuid, ent in ents.items():
-            uuid_to_obj[uuid] = _create_object(uuid, ent or {}, sc, sch)
-        for uuid, ent in ents.items():
-            _apply_refs(uuid_to_obj[uuid], ent or {}, uuid_to_obj, sch)
+        for uuid, (body, prefab_name) in resolved.items():
+            uuid_to_obj[uuid] = _create_object(uuid, body, sc, sch, prefab_name)
+        for uuid, (body, _prefab_name) in resolved.items():
+            _apply_refs(uuid_to_obj[uuid], body, uuid_to_obj, sch)
 
         if first_scene is None:
             first_scene = sc
+
+    loaded = [s for s, m in _model_meshes.items() if m is not None]
+    missing = [s for s, m in _model_meshes.items() if m is None]
+    if missing:
+        print(f"[blenjs] {len(loaded)} model(s) loaded; MISSING {missing} in {_assets_dir} — run `bun run build:models`")
+    elif loaded:
+        print(f"[blenjs] {len(loaded)} model(s) loaded from {_assets_dir}")
 
     win = getattr(context, "window", None)
     if first_scene is not None and win is not None:  # no window under --background
@@ -189,6 +317,66 @@ def _read_component(obj, component: dict) -> dict:
     return out
 
 
+def _native_transform(obj) -> dict:
+    pos, rot, scale = transform.blender_to_game(list(obj.location), list(obj.rotation_euler), list(obj.scale))
+    return {"pos": pos, "rot": rot, "scale": scale}
+
+
+def _build_plain_entity(obj, sch: "io_json.Schema") -> dict:
+    ent = {"name": obj.name, "Transform": _native_transform(obj)}
+    for comp in sch.components.values():
+        cname = comp["name"]
+        if cname == schema.NATIVE_TRANSFORM:
+            continue
+        if getattr(obj, schema.component_active_name(cname), False):
+            ent[cname] = _read_component(obj, comp)
+    return ent
+
+
+def _prefab_field(comp: str, field: str, pcomps: dict, sch: "io_json.Schema"):
+    """The prefab's effective value for ``comp.field``: its override if present, else the
+    schema default (what the prefab inherits)."""
+    cdata = pcomps.get(comp) or {}
+    return cdata[field] if field in cdata else sch.default(comp, field)
+
+
+def _same(field: dict, a, b) -> bool:
+    """Canonical-equality of two values for a schema field (quantized, so float noise and
+    1 vs 1.0 do not register as an override)."""
+    return io_json._value_for_field(field, a) == io_json._value_for_field(field, b)
+
+
+def _build_prefab_entity(obj, prefab_name: str, sch: "io_json.Schema") -> dict:
+    """A prefab instance: emit ``prefab`` + only what differs from the prefab (Transform
+    diffed field-by-field; each active component diffed field-by-field). Components/fields
+    equal to the prefab are omitted (inherited at load)."""
+    pcomps = (prefabs.definition(prefab_name) or {}).get("components") or {}
+    ent = {"name": obj.name, "prefab": prefab_name}
+
+    cur_t = _native_transform(obj)
+    t_fields = (sch.components.get(schema.NATIVE_TRANSFORM) or {}).get("fields", [])
+    t_diff = {
+        f["name"]: cur_t[f["name"]]
+        for f in t_fields
+        if not _same(f, cur_t[f["name"]], _prefab_field(schema.NATIVE_TRANSFORM, f["name"], pcomps, sch))
+    }
+    if t_diff:
+        ent["Transform"] = t_diff
+
+    for comp in sch.components.values():
+        cname = comp["name"]
+        if cname == schema.NATIVE_TRANSFORM or not getattr(obj, schema.component_active_name(cname), False):
+            continue
+        cur = _read_component(obj, comp)
+        if cname not in pcomps:
+            ent[cname] = cur  # active but not in the prefab (instance-only) — keep it whole
+            continue
+        diff = {f["name"]: cur[f["name"]] for f in comp.get("fields", []) if not _same(f, cur[f["name"]], _prefab_field(cname, f["name"], pcomps, sch))}
+        if diff:
+            ent[cname] = diff
+    return ent
+
+
 def build_data(sch: "io_json.Schema") -> dict:
     scenes_out = {}
     for sc in bpy.data.scenes:
@@ -197,20 +385,11 @@ def build_data(sch: "io_json.Schema") -> dict:
         ents = {}
         for obj in sc.collection.all_objects:
             uuid = ensure_uuid(obj)
-            pos, rot, scale = transform.blender_to_game(
-                list(obj.location), list(obj.rotation_euler), list(obj.scale)
-            )
-            ent = {
-                "name": obj.name,
-                "Transform": {"pos": pos, "rot": rot, "scale": scale},
-            }
-            for comp in sch.components.values():
-                cname = comp["name"]
-                if cname == schema.NATIVE_TRANSFORM:
-                    continue
-                if getattr(obj, schema.component_active_name(cname), False):
-                    ent[cname] = _read_component(obj, comp)
-            ents[uuid] = ent
+            prefab_name = obj.get("blenjs_prefab")
+            if prefab_name:
+                ents[uuid] = _build_prefab_entity(obj, prefab_name, sch)
+            else:
+                ents[uuid] = _build_plain_entity(obj, sch)
         scenes_out[sc.name] = {"entities": ents}
     return {"version": sch.version, "scenes": scenes_out}
 
@@ -219,6 +398,7 @@ def export_to_path(filepath: str) -> str:
     sch = schema.get_schema()
     if sch is None:
         raise RuntimeError("BlenJS schema not loaded — set the schema path in add-on preferences.")
+    prefabs.get()  # ensure the manifest is loaded for sparse prefab export (lazy)
     text = io_json.canonical_json(build_data(sch), sch)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(text)

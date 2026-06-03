@@ -72,6 +72,9 @@ class BLENJS_PT_inspector(bpy.types.Panel):
 
         col = layout.column(align=True)
         col.label(text=f"UUID: {obj.get('blenjs_uuid', '') or '(stamped on save)'}", icon="KEYINGSET")
+        prefab = obj.get("blenjs_prefab")
+        if prefab:
+            col.label(text=f"Prefab: {prefab}  ·  fields below override it", icon="OUTLINER_OB_GROUP_INSTANCE")
         col.label(text="Transform is the native object transform.", icon="ORIENTATION_LOCAL")
 
         layout.menu("BLENJS_MT_add_component", icon="ADD")

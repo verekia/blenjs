@@ -1,0 +1,8 @@
+{
+  "name": "player",
+  "components": {
+    "Model": { "src": "player.glb" },
+    "Transform": { "scale": [0.33, 0.33, 0.33] },
+    "Player": { "moveSpeed": 6, "jumpForce": 11 }
+  }
+}

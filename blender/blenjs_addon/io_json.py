@@ -153,17 +153,47 @@ def _generic_component(data: Any) -> dict[str, Any]:
     return out
 
 
+def _sparse_component(comp: str, data: dict[str, Any], schema: Schema) -> dict[str, Any]:
+    """Emit only the fields PRESENT in ``data`` (a prefab-instance override), in schema
+    order, canonicalized — defaults are NOT filled, since an absent field is inherited
+    from the prefab. Returns ``{}`` when nothing is overridden (caller omits it)."""
+    out: dict[str, Any] = {}
+    src = data or {}
+    for fname in schema.field_order(comp):
+        if fname in src:
+            field = schema.field(comp, fname)
+            out[fname] = _value_for_field(field or {}, src[fname])
+    return out
+
+
+def _ordered_component_keys(keys: list[str]) -> list[str]:
+    ordered: list[str] = []
+    if "Transform" in keys:
+        ordered.append("Transform")
+    ordered += sorted(k for k in keys if k != "Transform")
+    return ordered
+
+
 def _entity(uuid: str, ent: dict[str, Any], schema: Schema) -> dict[str, Any]:
     out: dict[str, Any] = {}
     out["name"] = str(ent.get("name", uuid))
 
-    comp_keys = [k for k in ent.keys() if k != "name"]
-    ordered: list[str] = []
-    if "Transform" in comp_keys:
-        ordered.append("Transform")
-    ordered += sorted(k for k in comp_keys if k != "Transform")
+    # Prefab instance: emit `prefab` + a SPARSE override set (Transform first, then other
+    # components alpha). Only overridden fields are written; everything else is inherited
+    # from the prefab at load (runtime resolvePrefabs / the add-on's prefab merge).
+    prefab = ent.get("prefab")
+    if isinstance(prefab, str) and prefab:
+        out["prefab"] = prefab
+        comp_keys = [k for k in ent.keys() if k not in ("name", "prefab")]
+        for k in _ordered_component_keys(comp_keys):
+            sparse = _sparse_component(k, ent.get(k) or {}, schema) if schema.has(k) else _generic_component(ent.get(k) or {})
+            if sparse:  # omit components with no overrides
+                out[k] = sparse
+        return out
 
-    for k in ordered:
+    # Plain entity: every field of every component emitted (defaults filled).
+    comp_keys = [k for k in ent.keys() if k not in ("name", "prefab")]
+    for k in _ordered_component_keys(comp_keys):
         if schema.has(k):
             out[k] = _component(k, ent.get(k) or {}, schema)
         else:
