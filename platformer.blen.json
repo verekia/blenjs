@@ -84,7 +84,86 @@
       }
     },
     "level2": {
-      "entities": {}
+      "entities": {
+        "201a0001": {
+          "name": "ground_start",
+          "Transform": {"pos": [3, 0, 0], "rot": [0, 0, 0], "scale": [12, 4, 1]},
+          "Collider": {"shape": "box"}
+        },
+        "201a0002": {
+          "name": "ground_mid",
+          "Transform": {"pos": [15, 0, 0], "rot": [0, 0, 0], "scale": [8, 4, 1]},
+          "Collider": {"shape": "box"}
+        },
+        "201a0003": {
+          "name": "step_1",
+          "Transform": {"pos": [17, 0, 1.4], "rot": [0, 0, 0], "scale": [3, 3, 0.5]},
+          "Collider": {"shape": "box"}
+        },
+        "201a0004": {
+          "name": "step_2",
+          "Transform": {"pos": [20, 0, 2.8], "rot": [0, 0, 0], "scale": [3, 3, 0.5]},
+          "Collider": {"shape": "box"}
+        },
+        "201a0005": {
+          "name": "spawn",
+          "Transform": {"pos": [0, 0, 1.5], "rot": [0, 0, 0], "scale": [1, 1, 1]},
+          "PlayerSpawn": {}
+        },
+        "201a0006": {
+          "name": "goal",
+          "Transform": {"pos": [20, 0, 3.5], "rot": [0, 0, 0], "scale": [1, 1, 1]},
+          "Goal": {}
+        },
+        "201a0007": {
+          "name": "coin_01",
+          "prefab": "coin",
+          "Transform": {"pos": [3, 0, 1.6]}
+        },
+        "201a0008": {
+          "name": "coin_02",
+          "prefab": "coin",
+          "Transform": {"pos": [13, 0, 1.6]}
+        },
+        "201a0009": {
+          "name": "coin_03",
+          "prefab": "coin",
+          "Transform": {"pos": [17, 0, 2.4]}
+        },
+        "201a000a": {
+          "name": "gem_01",
+          "prefab": "pickup",
+          "Transform": {"pos": [6, 0, 1.4]}
+        },
+        "201a000b": {
+          "name": "enemy_01",
+          "prefab": "enemy",
+          "Transform": {"pos": [5, 0, 0.9]},
+          "Patrol": {"speed": 2.5, "waypoints": ["201a000c", "201a000d"]}
+        },
+        "201a000c": {
+          "name": "wp_a1",
+          "Transform": {"pos": [1, 0, 0.9], "rot": [0, 0, 0], "scale": [1, 1, 1]}
+        },
+        "201a000d": {
+          "name": "wp_a2",
+          "Transform": {"pos": [8, 0, 0.9], "rot": [0, 0, 0], "scale": [1, 1, 1]}
+        },
+        "201a000e": {
+          "name": "enemy_02",
+          "prefab": "enemy",
+          "Transform": {"pos": [14, 0, 0.9]},
+          "Patrol": {"speed": 2, "waypoints": ["201a000f", "201a0010"]}
+        },
+        "201a000f": {
+          "name": "wp_b1",
+          "Transform": {"pos": [11.5, 0, 0.9], "rot": [0, 0, 0], "scale": [1, 1, 1]}
+        },
+        "201a0010": {
+          "name": "wp_b2",
+          "Transform": {"pos": [18, 0, 0.9], "rot": [0, 0, 0], "scale": [1, 1, 1]}
+        }
+      }
     }
   }
 }

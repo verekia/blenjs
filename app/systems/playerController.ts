@@ -2,6 +2,7 @@ import type { Entity, Vec3 } from '@blenjs/core'
 import { GRAVITY, PLAYER_HALF, FALL_KILL_Z } from '../game/constants'
 import { aabbFromCenter, colliderAABB, overlap } from '../game/physics'
 import type { GameContext } from '../game/types'
+import { faceMovement } from './face'
 
 type PlayerData = { moveSpeed: number; jumpForce: number }
 
@@ -65,6 +66,10 @@ export const playerController = (e: Entity, data: PlayerData, dt: number, ctx: G
   const move = (ctx.input.right ? 1 : 0) - (ctx.input.left ? 1 : 0)
   rt.vx = move * data.moveSpeed
   if (move !== 0) rt.dir = move
+
+  // Face the heading. rt.dir persists the last horizontal direction, so the player
+  // keeps facing it while idle (movement is along X only — no depth component).
+  faceMovement(e, rt.dir, 0, dt)
 
   if (ctx.input.jump && rt.grounded) {
     rt.vz = data.jumpForce

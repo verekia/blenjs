@@ -1,5 +1,6 @@
 import type { Entity, Vec3 } from '@blenjs/core'
 import type { GameContext } from '../game/types'
+import { faceMovement } from './face'
 
 type PatrolData = { speed: number; waypoints: string[]; loop: boolean }
 
@@ -28,6 +29,9 @@ export const patrol = (e: Entity, data: PatrolData, dt: number, ctx: GameContext
   const dz = tp[2] - pos[2]
   const dist = Math.hypot(dx, dy, dz)
   const step = data.speed * dt
+
+  // Turn to face the way we're travelling (horizontal heading only).
+  faceMovement(e, dx, dy, dt)
 
   if (dist <= step || dist < 1e-5) {
     pos[0] = tp[0]

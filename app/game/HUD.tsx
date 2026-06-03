@@ -1,15 +1,20 @@
 import { useGame } from './store'
 
-/** React HUD reading Zustand — score, ammo, controls, and the win/lose banner. */
-export const HUD = () => {
+/**
+ * React HUD reading Zustand — current level, score, ammo, and controls. Ending a
+ * run (win/lose) is handled by the React screen flow in Game.tsx, so there is no
+ * win/lose banner here.
+ */
+export const HUD = ({ level, levelCount }: { level: number; levelCount: number }) => {
   const score = useGame(s => s.score)
   const ammo = useGame(s => s.ammo)
-  const win = useGame(s => s.win)
-  const lose = useGame(s => s.lose)
 
   return (
     <>
       <div className="pointer-events-none fixed top-4 left-4 flex flex-col gap-1 font-mono text-sm">
+        <div>
+          Level <span className="tabular-nums">{level}</span> / <span className="tabular-nums">{levelCount}</span>
+        </div>
         <div>
           Score: <span className="tabular-nums">{score}</span>
         </div>
@@ -22,24 +27,8 @@ export const HUD = () => {
         <div>← → / A D &nbsp;move</div>
         <div>Space / W &nbsp;jump</div>
         <div>F / J / click &nbsp;shoot</div>
+        <div>R &nbsp;restart level</div>
       </div>
-
-      {(win || lose) && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black/60"
-          style={{ animation: 'blenjs-pop 0.2s ease-out' }}
-        >
-          <div className="text-center">
-            <div className={`text-5xl font-bold ${win ? 'text-emerald-400' : 'text-red-400'}`}>
-              {win ? 'You win!' : 'You fell…'}
-            </div>
-            <div className="mt-3 text-white/70">
-              Final score: <span className="tabular-nums">{score}</span>
-            </div>
-            <div className="mt-1 text-sm text-white/50">Press R to restart</div>
-          </div>
-        </div>
-      )}
     </>
   )
 }
