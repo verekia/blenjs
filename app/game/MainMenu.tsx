@@ -23,6 +23,9 @@ export const MainMenu = ({ result, onPlay }: { result: 'win' | 'lose' | null; on
       {result ? 'Play again' : 'Play'}
     </button>
 
-    <p className="text-xs text-white/30">← → / A D&nbsp;&nbsp;move&nbsp;&nbsp;·&nbsp;&nbsp;Space&nbsp;&nbsp;jump&nbsp;&nbsp;·&nbsp;&nbsp;F / J&nbsp;&nbsp;shoot</p>
+    <p className="text-xs text-white/30">
+      ← → / A D&nbsp;&nbsp;move&nbsp;&nbsp;·&nbsp;&nbsp;Space&nbsp;&nbsp;jump&nbsp;&nbsp;·&nbsp;&nbsp;F /
+      J&nbsp;&nbsp;shoot
+    </p>
   </div>
 )
