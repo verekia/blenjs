@@ -18,7 +18,7 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, StringProperty
 
-from . import file_handler, keymap, operators, panels, schema
+from . import file_handler, keymap, operators, overlays, panels, schema
 
 
 def register() -> None:
@@ -37,11 +37,13 @@ def register() -> None:
     bpy.utils.register_class(file_handler.BLENJS_FH_blen_json)
 
     bpy.types.TOPBAR_MT_file_import.append(operators.menu_import)
+    overlays.register()
     keymap.register()
 
 
 def unregister() -> None:
     keymap.unregister()
+    overlays.unregister()
     bpy.types.TOPBAR_MT_file_import.remove(operators.menu_import)
 
     bpy.utils.unregister_class(file_handler.BLENJS_FH_blen_json)

@@ -82,11 +82,13 @@ Two proven extension patterns exist in the codebase:
       (enable/spawn/toggle), per-action target lists, non-player triggers.
 - [ ] **Spawners.** A `Spawner` (prefab ref + rate/count/max) makes waves/emitters
       authorable instead of code-only like bullets.
-- [ ] 🔥 **Collider shape / rotation honesty.** `Collider` advertises
-      `box | sphere | capsule`, but physics only does an axis-aligned box and never
-      reads `shape` or `rot` (`colliderAABB` uses `Transform.scale` alone). Implement
-      sphere/capsule + slopes (or adopt a physics engine with collision layers), or
-      constrain the enum and warn.
+- [x] 🔥 **Collider shape / rotation honesty.** `Collider` now honours `shape` and `rot`:
+      axis-aligned boxes keep the fast per-axis AABB sweep (unchanged feel); spheres,
+      capsules, and rotated boxes use a push-out (MTV) pass that treats the player as a
+      sphere (`physics.ts`, unit-tested in `scripts/check-physics.ts`). Sizing derives from
+      `Transform.scale`. The blockout renders in its true shape, and the example ships a sphere
+      "boulder" + capsule "pillar". _Follow-up:_ slope-aware movement, collision layers, a real
+      physics engine if the game outgrows this.
 
 ## Tier 3 — editor comfort
 
@@ -96,8 +98,10 @@ Two proven extension patterns exist in the codebase:
       required `Collider.shape`, a `Patrol` with < 2 waypoints, a ref to a deleted
       object) is only caught after alt-tabbing. A live panel reading the same schema
       should flag it at author time.
-- [~] **Visualizers/gizmos.** Trigger volumes now show as cube-empties, and lights/cameras as
-  native gizmos. Still missing: waypoint paths drawn as lines between `Patrol.waypoints`.
+- [~] **Visualizers/gizmos.** Collider volumes (box/sphere/capsule, rotation-aware) draw in the
+  viewport as a wireframe overlay, toggled from the **Overlays** popover (`overlays.py`).
+  Trigger volumes show as cube-empties, and lights/cameras as native gizmos. Still missing:
+  waypoint paths drawn as lines between `Patrol.waypoints`.
 - [ ] **Explicit start scene & level order.** Order comes from `Object.keys(scenes)`
       today; make it data.
 - [ ] **Prefab-data editing in Blender.** Prefab _defaults_ live in hand-edited
@@ -110,7 +114,7 @@ Two proven extension patterns exist in the codebase:
       local transform is written as if it were world. Designers parent things
       instinctively. Support hierarchy (a `parent` field + nested transforms) or
       flatten-to-world on export with a warning.
-- [ ] 🔥 **Collider shape/rotation ignored** (see Tier 2).
+- [x] 🔥 **Collider shape/rotation ignored** — fixed (see Tier 2).
 
 ## Repo hygiene found along the way
 
@@ -129,5 +133,7 @@ Two proven extension patterns exist in the codebase:
 ## Suggested sequence
 
 Done so far: Lights, Camera, Material colors (+ real Blender datablocks), Triggers + event
-wiring. Next: Scene/World settings → Material-from-object → Spawners → in-scene mesh baking →
-Animation. Close the parenting + collider traps alongside — they actively mislead authors today.
+wiring, shaped colliders (box/sphere/capsule + rotation) with a viewport overlay. Next:
+Scene/World settings → Material-from-object → Spawners → in-scene mesh baking → Animation. The
+remaining 🔥 trap is **parenting** (export writes a child's local transform as world) — close it
+before leaning on hierarchy.

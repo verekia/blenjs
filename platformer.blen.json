@@ -111,6 +111,18 @@
           "Transform": {"pos": [12, 0, 0.55], "rot": [0, 0, 0], "scale": [2, 4, 0.3]},
           "Material": {"color": [0.13, 0.83, 0.93], "opacity": 0.35, "unlit": true},
           "Trigger": {"on": "enter", "action": "remove", "targets": ["81a2c5e0", "b1d2e8f3"], "once": true}
+        },
+        "ff000006": {
+          "name": "boulder",
+          "Transform": {"pos": [-1.5, 0, 1.25], "rot": [0, 0, 0], "scale": [1.5, 1.5, 1.5]},
+          "Collider": {"shape": "sphere"},
+          "Material": {"color": [0.55, 0.45, 0.35], "opacity": 1, "unlit": true}
+        },
+        "ff000007": {
+          "name": "pillar",
+          "Transform": {"pos": [21, 0, 2], "rot": [0, 0, 0], "scale": [1.2, 1.2, 3]},
+          "Collider": {"shape": "capsule"},
+          "Material": {"color": [0.45, 0.5, 0.55], "opacity": 1, "unlit": true}
         }
       }
     },

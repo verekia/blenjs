@@ -103,6 +103,21 @@ LEVEL1 = {
         "Trigger": {"action": "remove", "targets": ["81a2c5e0", "b1d2e8f3"]},
         "Material": RUNE_MAT,
     },
+    # --- shaped colliders off the critical path: a sphere "boulder" behind the spawn and a
+    #     capsule "pillar" past the goal — they exercise the sphere/capsule physics and show the
+    #     Blender collider overlay drawing non-box shapes (box stays the default for platforms) ---
+    "ff000006": {
+        "name": "boulder",
+        "Transform": transform([-1.5, 0, 1.25], [1.5, 1.5, 1.5]),
+        "Collider": {"shape": "sphere"},
+        "Material": {"color": [0.55, 0.45, 0.35]},
+    },
+    "ff000007": {
+        "name": "pillar",
+        "Transform": transform([21, 0, 2], [1.2, 1.2, 3]),
+        "Collider": {"shape": "capsule"},
+        "Material": {"color": [0.45, 0.5, 0.55]},
+    },
 }
 
 # A second, shorter level — proves the scene switcher and the "clear a level → advance" flow.

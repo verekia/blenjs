@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber/webgpu'
 import { useRef, type ReactNode } from 'react'
 import { Color, Euler, SRGBColorSpace, Vector3, type Group, type Mesh, type Object3D } from 'three'
 import prefabsJson from '../../generated/prefabs.json'
-import type { LightData, MaterialData, ModelData, PickupData } from '../components'
+import type { ColliderData, LightData, MaterialData, ModelData, PickupData } from '../components'
 
 const transformOf = (e: Entity) => e.components.Transform as { pos: number[]; scale?: number[] } | undefined
 
@@ -122,6 +122,35 @@ const PlatformMesh = ({ pos, scale, mat }: { pos: number[]; scale: number[]; mat
   </mesh>
 )
 
+// A Collider drawn in its actual shape, so the blockout matches the physics and the Blender
+// collider overlay: box → cuboid, sphere → ball (r = ½·max scale), capsule → pill along the
+// up axis (r = ½·max(x,y), height = scale.z). Sizing mirrors physics.ts exactly.
+const ColliderMesh = ({ e, pos, scale, mat }: { e: Entity; pos: number[]; scale: number[]; mat?: MaterialData }) => {
+  const shape = (e.components.Collider as ColliderData).shape
+  if (shape === 'sphere') {
+    return (
+      <mesh position={[pos[0], pos[1], pos[2]]}>
+        <sphereGeometry args={[0.5 * Math.max(scale[0], scale[1], scale[2]), 24, 16]} />
+        <SurfaceMaterial mat={mat} fallback="#39424f" />
+      </mesh>
+    )
+  }
+  if (shape === 'capsule') {
+    const r = 0.5 * Math.max(scale[0], scale[1])
+    const rot = (e.components.Transform as { rot?: Vec3 } | undefined)?.rot ?? [0, 0, 0]
+    return (
+      <group position={[pos[0], pos[1], pos[2]]} rotation={[rot[0], rot[1], rot[2]]}>
+        {/* three's CapsuleGeometry runs along Y; rotate it onto the Z-up world axis. */}
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <capsuleGeometry args={[r, Math.max(0, scale[2] - 2 * r), 6, 16]} />
+          <SurfaceMaterial mat={mat} fallback="#39424f" />
+        </mesh>
+      </group>
+    )
+  }
+  return <PlatformMesh pos={pos} scale={scale} mat={mat} />
+}
+
 // Collectible primitive — fallback for a Pickup with no model. Gems are cyan
 // octahedra; coins are gold spheres.
 const PickupMesh = ({ entity }: { entity: Entity }) => {
@@ -195,6 +224,6 @@ export const renderEntity = (e: Entity): ReactNode => {
     const mat = materialOf(e)
     return mat ? <PlatformMesh pos={pos} scale={scale} mat={mat} /> : null
   }
-  if (e.components.Collider) return <PlatformMesh pos={pos} scale={scale} mat={materialOf(e)} />
+  if (e.components.Collider) return <ColliderMesh e={e} pos={pos} scale={scale} mat={materialOf(e)} />
   return null
 }

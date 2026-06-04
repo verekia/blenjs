@@ -279,6 +279,14 @@ def _model_src(ent: dict) -> "str | None":
     return None
 
 
+def _is_box_collider(ent: dict) -> bool:
+    """A box Collider gets the unit-cube blockout proxy. Sphere/capsule colliders become
+    empties instead — their true shape is drawn by the viewport collider overlay (overlays.py),
+    so a misleading cube is not shown."""
+    col = ent.get("Collider")
+    return isinstance(col, dict) and (col.get("shape") or "box") == "box"
+
+
 def _create_object(uuid: str, ent: dict, scene, sch: "io_json.Schema", prefab_name: "str | None"):
     """``ent`` is the RESOLVED entity body (prefab defaults + overrides already merged);
     ``prefab_name`` is set for prefab instances so export can re-sparsify."""
@@ -294,7 +302,7 @@ def _create_object(uuid: str, ent: dict, scene, sch: "io_json.Schema", prefab_na
     data = None
     if holder is None:
         data = _camera_or_light_data(name, ent)
-    if data is None and holder is None and "Collider" in ent:
+    if data is None and holder is None and _is_box_collider(ent):
         data = _unit_cube_mesh()
 
     obj = bpy.data.objects.new(name, data)

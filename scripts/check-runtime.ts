@@ -39,7 +39,7 @@ const { entities, version } = loadScene(resolvePrefabs(game, 'level1', prefabs),
 const { byId } = resolveRefs(entities, registry)
 
 assert(version === registry.version, `schemaVersion ${version} matches registry`)
-assert(entities.length === 21, `loaded 21 entities (got ${entities.length})`)
+assert(entities.length === 23, `loaded 23 entities (got ${entities.length})`)
 
 const enemy = entities.find(e => e.name === 'enemy_01')
 const patrolData = enemy?.components.Patrol as { waypoints: string[] } | undefined
@@ -85,6 +85,14 @@ assert(
   rune?.action === 'remove' && (rune?.targets?.length ?? 0) === 2 && (rune?.targets ?? []).every(t => byId.has(t)),
   'enemy_rune removes 2 real target entities (trigger → targets wiring resolves)',
 )
+
+// Shaped colliders (TODO.md trap fixed): box/sphere/capsule are all expressible + validated.
+console.log('shaped colliders:')
+const shapeOf = (n: string) =>
+  (entities.find(e => e.name === n)?.components.Collider as { shape?: string } | undefined)?.shape
+assert(shapeOf('boulder') === 'sphere', 'boulder is a sphere collider')
+assert(shapeOf('pillar') === 'capsule', 'pillar is a capsule collider')
+assert(shapeOf('ground') === 'box', 'ground is a box collider')
 
 // Prefab resolution: a coin instance inherits its model + Pickup data from the prefab.
 console.log('prefab resolution:')
