@@ -10,7 +10,7 @@
     ".": "./src/index.tsx"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun check"
   },
   "dependencies": {
     "@blenjs/core": "workspace:*",

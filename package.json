@@ -18,8 +18,8 @@
     "lint:fix": "oxlint --fix .",
     "warden": "warden",
     "all": "bun run format:check && bun run lint && bun run typecheck && bun run warden",
-    "format": "oxfmt .",
-    "format:check": "oxfmt --check .",
+    "format": "bun fmt",
+    "format:check": "bun fmt --check",
     "lint": "oxlint ."
   },
   "devDependencies": {
@@ -27,14 +27,17 @@
     "@blenjs/core": "workspace:*",
     "@blenjs/runtime-three": "workspace:*",
     "@types/node": "25.7.0",
-    "@verekia/warden": "0.0.4",
-    "oxfmt": "0.48.0",
+    "@verekia/warden": "0.0.6",
     "oxlint": "1.63.0",
     "typescript": "6.0.3"
   },
   "overrides": {
     "three": "0.182.0"
   },
+  "engines": {
+    "bun": "1.4.4"
+  },
+  "packageManager": "bun@1.4.4",
   "patchedDependencies": {
     "three@0.182.0": "patches/three@0.182.0.patch",
     "detect-gpu@5.0.70": "patches/detect-gpu@5.0.70.patch"
