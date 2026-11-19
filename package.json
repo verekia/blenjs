@@ -28,8 +28,7 @@
     "@blenjs/runtime-three": "workspace:*",
     "@types/node": "25.7.0",
     "@verekia/warden": "0.0.6",
-    "oxlint": "1.63.0",
-    "typescript": "6.0.3"
+    "oxlint": "1.63.0"
   },
   "overrides": {
     "three": "0.182.0"
